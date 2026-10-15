@@ -106,5 +106,14 @@ def test_ground_ring_runs_around_the_perimeter():
 
 
 def test_bus_layout_keeps_wiring_short():
-    # 45 insulated wires before the GND ring, 34 with it; 6 once pins and connectors were grouped by side
+    # 45 insulated wires before the GND ring, 34 with it; 6 once pins and connectors were grouped by side, 8 on the smaller 33 x 28 board
     assert len([t for t in R.traces if t.layer == WIRE]) <= 8
+
+
+def test_insulated_wires_never_lie_along_the_ground_ring():
+    cols, rows = BOARD_HOLES
+    for t in R.traces:
+        if t.layer == WIRE:
+            for (c1, r1), (c2, r2) in zip(t.holes, t.holes[1:]):
+                assert not (r1 == r2 and r1 in (0, rows - 1)), t.net
+                assert not (c1 == c2 and c1 in (0, cols - 1)), t.net

@@ -36,3 +36,12 @@ def test_cable_connectors_have_ground_on_the_board_edge():
             assert c in (0, cols - 1) or r in (0, rows - 1), p.ref
             others = [pin_hole(p.ref, pin) for pin in p.pins if pin != "1"]
             assert all(0 < c < cols - 1 and 0 < r < rows - 1 for c, r in others), p.ref
+
+
+def test_part_outlines_do_not_overlap():
+    from netlist import part_outline
+
+    seen: dict[tuple[int, int], str] = {}
+    for p in PARTS:
+        for h in part_outline(p.ref):
+            assert seen.setdefault(h, p.ref) == p.ref, (p.ref, seen[h], h)

@@ -51,7 +51,7 @@ SONAR_CAN_PITCH = 26.0
 SONAR_CAN_H = 12.0
 
 # perfboard
-BOARD = (100.0, 80.0)
+BOARD = (90.0, 75.0)
 
 # rules / targets
 BOX = 150.0

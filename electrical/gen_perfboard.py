@@ -33,7 +33,7 @@ def wire_list() -> list[tuple[str, tuple[str, str], tuple[str, str]]]:
 
 def _placement_section() -> list[str]:
     lines = ["## 部品配置", "",
-             f"基板は {BOARD_HOLES[0]} × {BOARD_HOLES[1]} 穴(2.54mm 格子、約 100 × 80mm)。部品面から見て、"
+             f"基板は {BOARD_HOLES[0]} × {BOARD_HOLES[1]} 穴(2.54mm 格子、約 {BOARD_HOLES[0] * 2.54:.0f} × {BOARD_HOLES[1] * 2.54:.0f}mm)。部品面から見て、"
              "列 0 がロボットの左端、行 0 が前端。回転はピン番号が進む向き(0: 列+、90: 行+、180: 列−、270: 行−)。", "",
              "| ref | 値 | ピン1の穴 | 回転 |", "|---|---|---|---|"]
     by_ref = {p.ref: p for p in PARTS}

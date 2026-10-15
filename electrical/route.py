@@ -77,6 +77,15 @@ class _Board:
             for pin, net in p.pins.items():
                 self.pin_owner[pin_hole(p.ref, pin)] = net
         self.ring = set(ground_ring())
+        # an insulated wire may cross the ring but not lie along it, on top of its solder joints
+        cols, rows = self.cols, self.rows
+        self.ring_axes: dict[Hole, set[str]] = {}
+        for c, r in self.ring:
+            axes = self.ring_axes.setdefault((c, r), set())
+            if r in (0, rows - 1):
+                axes.add("h")
+            if c in (0, cols - 1):
+                axes.add("v")
 
     def inside(self, h: Hole) -> bool:
         return 0 <= h[0] < self.cols and 0 <= h[1] < self.rows
@@ -152,6 +161,9 @@ def _grow(board: _Board, net: str, roots: set[Hole], pins: set[Hole], cost_of):
             for nd, (dc, dr) in enumerate(_DIRS):
                 n = (h[0] + dc, h[1] + dr)
                 if not board.inside(n) or not board.enterable(net, layer, n, remaining):
+                    continue
+                if layer == WIRE and (_axis(nd) in board.ring_axes.get(n, ())
+                                      or _axis(nd) in board.ring_axes.get(h, ())):
                     continue
                 step = cost_of(_key(layer, n, _axis(nd)))
                 turning = d not in (-1, nd)

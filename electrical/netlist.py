@@ -121,43 +121,43 @@ def nets() -> dict[str, list[tuple[str, str]]]:
 # edge, viewed from the component side. Rotation: direction in which pin
 # numbers advance (0: +col, 90: +row, 180: -col, 270: -row).
 
-BOARD_HOLES = (44, 36)  # ~112 x 91mm, fits a 115 x 95mm board
+BOARD_HOLES = (33, 28)  # ~84 x 71mm, fits a 90 x 75mm board
 
 PLACEMENT: dict[str, tuple[int, int, int]] = {
     # Cable connectors stand at right angles to the board edge with pin 1 (always GND) on the perimeter,
     # where a bare ring wire on the solder side joins them all. Each connector sits on the side of the
     # Blue Pill row that drives it, in the same order as its pins, so the signal wires hardly cross.
     # Bluepill: pin 1 toward the front, USB toward the rear edge
-    "J_BP_B": (19, 8, 90),
-    "J_BP_A": (25, 8, 90),
+    "J_BP_B": (13, 4, 90),
+    "J_BP_A": (19, 4, 90),
     # front edge (pins run toward the rear)
-    "J_UART": (6, 0, 90),
-    "J_DRV_L": (12, 0, 90),
-    "J_DRV_G": (28, 0, 90),
-    "J_DRV_R": (35, 0, 90),
+    "J_UART": (5, 0, 90),
+    "J_DRV_L": (11, 0, 90),
+    "J_DRV_G": (18, 0, 90),
+    "J_DRV_R": (24, 0, 90),
     # left edge (pins run inward)
-    "J_ENC_L": (0, 14, 0),
-    "J_US_LF": (0, 20, 0),
-    "J_US_LR": (0, 25, 0),
+    "J_ENC_L": (0, 7, 0),
+    "J_US_LF": (0, 16, 0),
+    "J_US_LR": (0, 20, 0),
     # right edge
-    "J_ENC_G": (43, 6, 180),
-    "J_ENC_R": (43, 15, 180),
-    "J_US_RF": (43, 22, 180),
-    "J_US_RR": (43, 27, 180),
+    "J_ENC_G": (32, 4, 180),
+    "J_ENC_R": (32, 9, 180),
+    "J_US_RF": (32, 20, 180),
+    "J_US_RR": (32, 25, 180),
     # rear edge (pins run toward the front): power in, buck module
-    "J_PWR": (2, 35, 270),
-    "J_BUCK": (6, 35, 270),
+    "J_PWR": (1, 27, 270),
+    "J_BUCK": (7, 27, 270),
     # interior
-    "C_BULK": (4, 30, 0),
-    "R_DIV_H": (8, 31, 0),
-    "R_DIV_L": (12, 29, 180),
-    "C_DIV": (13, 26, 0),
-    "D_5V": (11, 33, 0),
-    "R_ECHO_LF": (6, 21, 0),
-    "R_ECHO_LR": (6, 26, 0),
-    "R_ECHO_RF": (37, 23, 180),
-    "R_ECHO_RR": (37, 28, 180),
-    "R_USB": (28, 30, 0),
+    "C_BULK": (4, 25, 90),
+    "R_DIV_H": (10, 25, 0),
+    "R_DIV_L": (15, 25, 270),
+    "C_DIV": (10, 22, 0),
+    "D_5V": (13, 26, 0),
+    "R_ECHO_LF": (2, 18, 0),
+    "R_ECHO_LR": (4, 23, 0),
+    "R_ECHO_RF": (29, 17, 270),
+    "R_ECHO_RR": (27, 25, 270),
+    "R_USB": (17, 19, 270),
 }
 
 # Hole step between consecutive pin numbers.
@@ -179,3 +179,24 @@ def pin_hole(ref: str, pin: str) -> tuple[int, int]:
     dc, dr = _DIRS[rot]
     k = (int(pin) - 1) * _pin_step(ref)
     return c + dc * k, r + dr * k
+
+
+def part_outline(ref: str) -> set[tuple[int, int]]:
+    """Holes covered on the component side by a part's leads and body (approximate outline).
+    XH housings and terminal blocks reach one hole past their end pins and one hole to either side."""
+    p = next(q for q in PARTS if q.ref == ref)
+    pins = [pin_hole(ref, k) for k in sorted(p.pins, key=int)]
+    if ref.startswith("J_BP"):
+        pins = [pin_hole(ref, str(i)) for i in range(1, 21)]
+    (c1, r1), (c2, r2) = pins[0], pins[-1]
+    n = max(abs(c2 - c1), abs(r2 - r1)) or 1
+    dc, dr = _DIRS[PLACEMENT[ref][2]]
+    line = [(c1 + dc * k, r1 + dr * k) for k in range(n + 1)]
+    if ref == "C_BULK":  # 8mm can
+        c, r = pins[0]
+        return {(c + x * abs(dr) + y * abs(dc), r + x * abs(dc) + y * abs(dr))
+                for x in range(-1, 2) for y in range(-1, 3)}
+    if ref.startswith(("J_ENC", "J_US", "J_DRV", "J_PWR", "J_BUCK", "J_UART")):
+        ends = [(c1 - dc, r1 - dr)] + line + [(c2 + dc, r2 + dr)]
+        return {(c + dr * k, r + dc * k) for c, r in ends for k in (-1, 0, 1)}
+    return set(line)
