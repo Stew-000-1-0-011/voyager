@@ -16,7 +16,7 @@ import heapq
 import random
 from dataclasses import dataclass, field
 
-from netlist import BOARD_HOLES, MODULE_BRIDGES, PARTS, PLACEMENT, nets, pin_hole
+from netlist import BOARD_HOLES, MODULE_BRIDGES, PARTS, PLACEMENT, nets, pin_count, pin_hole
 
 Hole = tuple[int, int]
 
@@ -70,9 +70,9 @@ class _Board:
     def __init__(self) -> None:
         self.cols, self.rows = BOARD_HOLES
         self.pin_owner: dict[Hole, str] = {}
-        for ref in ("J_BP_A", "J_BP_B"):  # unconnected Bluepill pins are still pins
-            for i in range(1, 21):
-                self.pin_owner[pin_hole(ref, str(i))] = _NC
+        for p in PARTS:  # unconnected pins (Bluepill, driver VM) are still pins
+            for i in range(1, pin_count(p) + 1):
+                self.pin_owner[pin_hole(p.ref, str(i))] = _NC
         for p in PARTS:
             for pin, net in p.pins.items():
                 self.pin_owner[pin_hole(p.ref, pin)] = net

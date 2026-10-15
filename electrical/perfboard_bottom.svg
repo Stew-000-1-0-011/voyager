@@ -939,41 +939,37 @@
 <text x="39.2" y="444" font-size="12" text-anchor="middle">15</text>
 <text x="39.2" y="554" font-size="12" text-anchor="middle">20</text>
 <text x="39.2" y="664" font-size="12" text-anchor="middle">25</text>
-<polyline points="180,660 158,660 136,660" fill="none" stroke="#18a953" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-<polyline points="730,506 708,506 708,484 708,462" fill="none" stroke="#62a918" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-<polyline points="136,484 136,506 136,528 136,550" fill="none" stroke="#3218a9" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-<polyline points="708,550 708,572 708,594 708,616 686,616" fill="none" stroke="#1893a9" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="752,462 752,484 752,506 730,506" fill="none" stroke="#62a918" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="136,484 136,506 136,528 114,528 92,528 92,550" fill="none" stroke="#3218a9" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
 <polyline points="400,528 378,528 378,506 378,484 378,462 378,440 356,440" fill="none" stroke="#4718a9" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-<polyline points="378,154 378,176 378,198 378,220 378,242 378,264 378,286 356,286" fill="none" stroke="#a91818" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="752,550 752,572 752,594 752,616 730,616 708,616 686,616" fill="none" stroke="#1893a9" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="356,264 334,264 334,242 334,220 334,198 334,176 334,154 312,154" fill="none" stroke="#a9189a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="356,286 334,286 312,286 312,264 312,242 312,220 312,198 312,176" fill="none" stroke="#a91818" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
 <polyline points="642,506 620,506 598,506 576,506 554,506 532,506 510,506 488,506" fill="none" stroke="#28a918" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-<polyline points="378,132 356,132 334,132 334,154 334,176 334,198 334,220 334,242 334,264 356,264" fill="none" stroke="#a9189a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-<polyline points="532,154 532,176 532,198 532,220 532,242 532,264 532,286 532,308 510,308 488,308" fill="none" stroke="#18a992" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="532,154 510,154 510,176 510,198 510,220 510,242 510,264 510,286 488,286" fill="none" stroke="#18a98e" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="532,176 532,198 532,220 532,242 532,264 532,286 532,308 510,308 488,308" fill="none" stroke="#18a992" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
 <polyline points="598,616 598,594 598,572 598,550 576,550 554,550 532,550 510,550 510,528 488,528" fill="none" stroke="#18a95c" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
 <polyline points="752,660 730,660 708,660 686,660" fill="none" stroke="#d62728" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
 <polyline points="686,660 664,660 642,660 642,682 620,682" fill="none" stroke="#d62728" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
 <polyline points="620,682 598,682 576,682 554,682 554,660" fill="none" stroke="#d62728" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-<polyline points="356,616 334,616 312,616 290,616 268,616 246,616 246,594 246,572 224,572 202,572 180,572" fill="none" stroke="#3d18a9" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-<polyline points="532,132 510,132 488,132 466,132 466,154 466,176 466,198 466,220 466,242 466,264 466,286 488,286" fill="none" stroke="#18a98e" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-<polyline points="356,308 334,308 312,308 312,286 312,264 312,242 312,220 312,198 312,176 312,154 312,132 290,132 268,132 246,132" fill="none" stroke="#71a918" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-<polyline points="356,330 334,330 312,330 290,330 268,330 268,308 268,286 268,264 268,242 268,220 268,198 268,176 268,154 246,154" fill="none" stroke="#a9184d" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="356,308 334,308 312,308 290,308 290,286 290,264 290,242 290,220 290,198 290,176 290,154 268,154 246,154" fill="none" stroke="#71a918" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="356,330 334,330 312,330 290,330 268,330 246,330 246,308 246,286 246,264 246,242 246,220 246,198 246,176" fill="none" stroke="#a9184d" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
 <polyline points="730,462 730,440 708,440 686,440 664,440 642,440 620,440 598,440 576,440 554,440 554,462 532,462 510,462 488,462" fill="none" stroke="#a518a9" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-<polyline points="356,550 334,550 312,550 290,550 268,550 246,550 224,550 202,550 180,550 158,550 158,572 136,572 114,572 114,550" fill="none" stroke="#a91824" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
 <polyline points="730,550 730,528 708,528 686,528 664,528 664,506 664,484 642,484 620,484 598,484 576,484 554,484 532,484 510,484 488,484" fill="none" stroke="#9418a9" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-<polyline points="664,176 664,198 664,220 664,242 664,264 664,286 664,308 664,330 664,352 642,352 620,352 598,352 576,352 554,352 532,352 510,352 488,352" fill="none" stroke="#a97918" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-<polyline points="664,154 642,154 620,154 598,154 576,154 576,176 576,198 576,220 576,242 576,264 576,286 576,308 576,330 554,330 532,330 510,330 488,330" fill="none" stroke="#a98b18" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-<polyline points="356,594 378,594 378,616 378,638 356,638 334,638 312,638 290,638 268,638 246,638 224,638 202,638 180,638 158,638 136,638 114,638 114,660" fill="none" stroke="#a96018" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="356,594 334,594 312,594 290,594 268,594 246,594 224,594 224,616 224,638 202,638 180,638 158,638 136,638 114,638 114,660" fill="none" stroke="#a96018" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="664,176 642,176 620,176 620,198 620,220 620,242 620,264 620,286 620,308 620,330 620,352 598,352 576,352 554,352 532,352 510,352 488,352" fill="none" stroke="#a97918" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="664,154 642,154 620,154 598,154 576,154 554,154 554,176 554,198 554,220 554,242 554,264 554,286 554,308 554,330 532,330 510,330 488,330" fill="none" stroke="#a98b18" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
 <polyline points="708,264 708,286 708,308 708,330 708,352 708,374 708,396 686,396 664,396 642,396 620,396 598,396 576,396 554,396 532,396 510,396 510,418 510,440 488,440" fill="none" stroke="#8a18a9" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-<polyline points="356,396 334,396 312,396 290,396 268,396 246,396 224,396 224,374 224,352 224,330 224,308 224,286 202,286 180,286 158,286 136,286 136,264 136,242 136,220 136,198" fill="none" stroke="#18a98a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-<polyline points="356,506 334,506 312,506 290,506 268,506 268,484 268,462 268,440 268,418 246,418 224,418 202,418 202,396 202,374 202,352 202,330 202,308 180,308 158,308 136,308" fill="none" stroke="#5718a9" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="356,374 334,374 312,374 290,374 268,374 246,374 224,374 224,352 224,330 224,308 224,286 224,264 202,264 180,264 158,264 136,264 114,264 114,242 114,220 114,198" fill="none" stroke="#a96a18" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="356,506 334,506 312,506 312,484 312,462 312,440 312,418 290,418 268,418 246,418 224,418 202,418 180,418 180,396 180,374 180,352 180,330 180,308 158,308 136,308" fill="none" stroke="#5718a9" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
 <polyline points="554,594 532,594 532,616 532,638 532,660 510,660 488,660 466,660" fill="none" stroke="#9ca918" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
 <polyline points="466,660 444,660" fill="none" stroke="#9ca918" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-<polyline points="356,374 334,374 312,374 290,374 268,374 268,352 246,352 246,330 246,308 246,286 246,264 246,242 246,220 246,198 246,176 224,176 202,176 180,176 158,176 136,176 114,176 114,198" fill="none" stroke="#a96a18" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-<polyline points="356,528 334,528 312,528 290,528 268,528 246,528 246,506 246,484 246,462 246,440 224,440 202,440 180,440 158,440 136,440 114,440 114,418 114,396 114,374 114,352 114,330 114,308" fill="none" stroke="#5518a9" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-<polyline points="752,462 752,484 752,506 752,528 752,550" fill="none" stroke="#ff7f0e" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-<polyline points="752,550 752,572 752,594 752,616 752,638 730,638 708,638 686,638 664,638 642,638 620,638 620,660" fill="none" stroke="#ff7f0e" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-<polyline points="400,682 378,682 356,682 334,682 312,682 290,682 268,682 246,682 224,682 202,682 180,682 158,682 136,682 114,682 92,682 92,660" fill="none" stroke="#ff7f0e" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-<polyline points="92,660 92,638 92,616 92,594 92,572 92,550" fill="none" stroke="#ff7f0e" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-<polyline points="488,572 466,572 466,550 466,528 466,506 466,484 444,484 422,484 400,484 400,462 400,440" fill="none" stroke="#9467bd" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="356,396 334,396 312,396 290,396 268,396 246,396 224,396 202,396 202,374 202,352 202,330 202,308 202,286 180,286 158,286 136,286" fill="none" stroke="#18a98a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="356,528 334,528 312,528 290,528 290,506 290,484 268,484 246,484 224,484 202,484 180,484 158,484 158,462 136,462 114,462 114,440 114,418 114,396 114,374 114,352 114,330 114,308" fill="none" stroke="#5518a9" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="708,550 686,550 664,550 642,550 620,550 620,572 620,594 620,616 620,638 620,660" fill="none" stroke="#ff7f0e" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="400,682 378,682 356,682 334,682 312,682 290,682 268,682 246,682 224,682 202,682 180,682 158,682 158,660 136,660" fill="none" stroke="#ff7f0e" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="488,572 466,572 466,550 466,528 466,506 444,506 422,506 400,506 400,484 400,462 400,440" fill="none" stroke="#9467bd" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="224,198 224,176 202,176 180,176 158,176 136,176 114,176 92,176 92,198" fill="none" stroke="#9467bd" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
 <polyline points="92,198 92,220 92,242 92,264 92,286 92,308" fill="none" stroke="#9467bd" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
 <polyline points="664,132 686,132 708,132 730,132 752,132 752,154 752,176 752,198 752,220 752,242 752,264" fill="none" stroke="#9467bd" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
 <polyline points="774,110 752,110 730,110 708,110 686,110 664,110 642,110 620,110 598,110 576,110 554,110 532,110 510,110 488,110 466,110 444,110 422,110 400,110 378,110 356,110 334,110 312,110 290,110 268,110 246,110 224,110 202,110 180,110 158,110 136,110 114,110 92,110 70,110 70,132 70,154 70,176 70,198 70,220 70,242 70,264 70,286 70,308 70,330 70,352 70,374 70,396 70,418 70,440 70,462 70,484 70,506 70,528 70,550 70,572 70,594 70,616 70,638 70,660 70,682 70,704 92,704 114,704 136,704 158,704 180,704 202,704 224,704 246,704 268,704 290,704 312,704 334,704 356,704 378,704 400,704 422,704 444,704 466,704 488,704 510,704 532,704 554,704 576,704 598,704 620,704 642,704 664,704 686,704 708,704 730,704 752,704 774,704 774,682 774,660 774,638 774,616 774,594 774,572 774,550 774,528 774,506 774,484 774,462 774,440 774,418 774,396 774,374 774,352 774,330 774,308 774,286 774,264 774,242 774,220 774,198 774,176 774,154 774,132" fill="none" stroke="#222222" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -982,64 +978,58 @@
 <polyline points="488,594 466,594 444,594 444,572" fill="none" stroke="#222222" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
 <rect x="72" y="688" width="22.6" height="13" fill="white" fill-opacity="0.85" rx="2"/>
 <text x="74" y="698" font-size="10" font-weight="bold" fill="#222222">GND</text>
-<rect x="248" y="226" width="47.4" height="13" fill="white" fill-opacity="0.85" rx="2"/>
-<text x="250" y="236" font-size="10" font-weight="bold" fill="#a96a18">ENC_G_A</text>
-<rect x="204" y="424" width="47.4" height="13" fill="white" fill-opacity="0.85" rx="2"/>
-<text x="206" y="434" font-size="10" font-weight="bold" fill="#5518a9">ENC_R_A</text>
-<rect x="226" y="292" width="47.4" height="13" fill="white" fill-opacity="0.85" rx="2"/>
-<text x="228" y="302" font-size="10" font-weight="bold" fill="#18a98a">ENC_G_B</text>
+<rect x="160" y="468" width="47.4" height="13" fill="white" fill-opacity="0.85" rx="2"/>
+<text x="162" y="478" font-size="10" font-weight="bold" fill="#5518a9">ENC_R_A</text>
+<rect x="226" y="270" width="47.4" height="13" fill="white" fill-opacity="0.85" rx="2"/>
+<text x="228" y="280" font-size="10" font-weight="bold" fill="#a96a18">ENC_G_A</text>
 <rect x="226" y="402" width="47.4" height="13" fill="white" fill-opacity="0.85" rx="2"/>
 <text x="228" y="412" font-size="10" font-weight="bold" fill="#5718a9">ENC_R_B</text>
 <rect x="644" y="380" width="47.4" height="13" fill="white" fill-opacity="0.85" rx="2"/>
 <text x="646" y="390" font-size="10" font-weight="bold" fill="#8a18a9">ENC_L_B</text>
-<rect x="666" y="336" width="47.4" height="13" fill="white" fill-opacity="0.85" rx="2"/>
-<text x="668" y="346" font-size="10" font-weight="bold" fill="#a97918">UART_RX</text>
-<rect x="578" y="226" width="47.4" height="13" fill="white" fill-opacity="0.85" rx="2"/>
-<text x="580" y="236" font-size="10" font-weight="bold" fill="#a98b18">UART_TX</text>
-<rect x="270" y="622" width="66.0" height="13" fill="white" fill-opacity="0.85" rx="2"/>
-<text x="272" y="632" font-size="10" font-weight="bold" fill="#a96018">US_TRIG_RR</text>
-<rect x="226" y="666" width="22.6" height="13" fill="white" fill-opacity="0.85" rx="2"/>
-<text x="228" y="676" font-size="10" font-weight="bold" fill="#ff7f0e">+5V</text>
+<rect x="622" y="292" width="47.4" height="13" fill="white" fill-opacity="0.85" rx="2"/>
+<text x="624" y="302" font-size="10" font-weight="bold" fill="#a97918">UART_RX</text>
+<rect x="556" y="204" width="47.4" height="13" fill="white" fill-opacity="0.85" rx="2"/>
+<text x="558" y="214" font-size="10" font-weight="bold" fill="#a98b18">UART_TX</text>
+<rect x="204" y="358" width="47.4" height="13" fill="white" fill-opacity="0.85" rx="2"/>
+<text x="206" y="368" font-size="10" font-weight="bold" fill="#18a98a">ENC_G_B</text>
 <rect x="644" y="468" width="66.0" height="13" fill="white" fill-opacity="0.85" rx="2"/>
 <text x="646" y="478" font-size="10" font-weight="bold" fill="#9418a9">US_TRIG_LR</text>
-<rect x="314" y="182" width="35.0" height="13" fill="white" fill-opacity="0.85" rx="2"/>
-<text x="316" y="192" font-size="10" font-weight="bold" fill="#71a918">R_IN1</text>
-<rect x="270" y="248" width="35.0" height="13" fill="white" fill-opacity="0.85" rx="2"/>
-<text x="272" y="258" font-size="10" font-weight="bold" fill="#a9184d">R_IN2</text>
+<rect x="226" y="600" width="66.0" height="13" fill="white" fill-opacity="0.85" rx="2"/>
+<text x="228" y="610" font-size="10" font-weight="bold" fill="#a96018">US_TRIG_RR</text>
 <rect x="600" y="424" width="66.0" height="13" fill="white" fill-opacity="0.85" rx="2"/>
 <text x="602" y="434" font-size="10" font-weight="bold" fill="#a518a9">US_TRIG_LF</text>
-<rect x="204" y="534" width="66.0" height="13" fill="white" fill-opacity="0.85" rx="2"/>
-<text x="206" y="544" font-size="10" font-weight="bold" fill="#a91824">US_TRIG_RF</text>
-<rect x="468" y="182" width="35.0" height="13" fill="white" fill-opacity="0.85" rx="2"/>
-<text x="470" y="192" font-size="10" font-weight="bold" fill="#18a98e">L_IN1</text>
-<rect x="248" y="600" width="66.0" height="13" fill="white" fill-opacity="0.85" rx="2"/>
-<text x="250" y="610" font-size="10" font-weight="bold" fill="#3d18a9">US_ECHO_RR</text>
-<rect x="468" y="468" width="28.8" height="13" fill="white" fill-opacity="0.85" rx="2"/>
-<text x="470" y="478" font-size="10" font-weight="bold" fill="#9467bd">+3V3</text>
-<rect x="336" y="182" width="35.0" height="13" fill="white" fill-opacity="0.85" rx="2"/>
-<text x="338" y="192" font-size="10" font-weight="bold" fill="#a9189a">G_IN1</text>
-<rect x="534" y="248" width="35.0" height="13" fill="white" fill-opacity="0.85" rx="2"/>
-<text x="536" y="258" font-size="10" font-weight="bold" fill="#18a992">L_IN2</text>
+<rect x="248" y="666" width="22.6" height="13" fill="white" fill-opacity="0.85" rx="2"/>
+<text x="250" y="676" font-size="10" font-weight="bold" fill="#ff7f0e">+5V</text>
+<rect x="292" y="226" width="35.0" height="13" fill="white" fill-opacity="0.85" rx="2"/>
+<text x="294" y="236" font-size="10" font-weight="bold" fill="#71a918">R_IN1</text>
+<rect x="248" y="292" width="35.0" height="13" fill="white" fill-opacity="0.85" rx="2"/>
+<text x="250" y="302" font-size="10" font-weight="bold" fill="#a9184d">R_IN2</text>
+<rect x="446" y="490" width="28.8" height="13" fill="white" fill-opacity="0.85" rx="2"/>
+<text x="448" y="500" font-size="10" font-weight="bold" fill="#9467bd">+3V3</text>
 <rect x="556" y="534" width="66.0" height="13" fill="white" fill-opacity="0.85" rx="2"/>
 <text x="558" y="544" font-size="10" font-weight="bold" fill="#18a95c">US_ECHO_LR</text>
-<rect x="380" y="226" width="35.0" height="13" fill="white" fill-opacity="0.85" rx="2"/>
-<text x="382" y="236" font-size="10" font-weight="bold" fill="#a91818">G_IN2</text>
+<rect x="512" y="204" width="35.0" height="13" fill="white" fill-opacity="0.85" rx="2"/>
+<text x="514" y="214" font-size="10" font-weight="bold" fill="#18a98e">L_IN1</text>
+<rect x="534" y="248" width="35.0" height="13" fill="white" fill-opacity="0.85" rx="2"/>
+<text x="536" y="258" font-size="10" font-weight="bold" fill="#18a992">L_IN2</text>
+<rect x="336" y="182" width="35.0" height="13" fill="white" fill-opacity="0.85" rx="2"/>
+<text x="338" y="192" font-size="10" font-weight="bold" fill="#a9189a">G_IN1</text>
+<rect x="314" y="226" width="35.0" height="13" fill="white" fill-opacity="0.85" rx="2"/>
+<text x="316" y="236" font-size="10" font-weight="bold" fill="#a91818">G_IN2</text>
 <rect x="556" y="490" width="66.0" height="13" fill="white" fill-opacity="0.85" rx="2"/>
 <text x="558" y="500" font-size="10" font-weight="bold" fill="#28a918">US_ECHO_LF</text>
 <rect x="534" y="644" width="66.0" height="13" fill="white" fill-opacity="0.85" rx="2"/>
 <text x="536" y="654" font-size="10" font-weight="bold" fill="#9ca918">VBAT_SENSE</text>
 <rect x="380" y="468" width="41.2" height="13" fill="white" fill-opacity="0.85" rx="2"/>
 <text x="382" y="478" font-size="10" font-weight="bold" fill="#4718a9">USB_DP</text>
-<rect x="710" y="578" width="90.8" height="13" fill="white" fill-opacity="0.85" rx="2"/>
-<text x="712" y="588" font-size="10" font-weight="bold" fill="#1893a9">US_ECHO_LR_RAW</text>
+<rect x="754" y="600" width="90.8" height="13" fill="white" fill-opacity="0.85" rx="2"/>
+<text x="756" y="610" font-size="10" font-weight="bold" fill="#1893a9">US_ECHO_LR_RAW</text>
+<rect x="116" y="512" width="90.8" height="13" fill="white" fill-opacity="0.85" rx="2"/>
+<text x="118" y="522" font-size="10" font-weight="bold" fill="#3218a9">US_ECHO_RF_RAW</text>
 <rect x="644" y="644" width="28.8" height="13" fill="white" fill-opacity="0.85" rx="2"/>
 <text x="646" y="654" font-size="10" font-weight="bold" fill="#d62728">VBAT</text>
-<rect x="710" y="468" width="90.8" height="13" fill="white" fill-opacity="0.85" rx="2"/>
-<text x="712" y="478" font-size="10" font-weight="bold" fill="#62a918">US_ECHO_LF_RAW</text>
-<rect x="138" y="512" width="90.8" height="13" fill="white" fill-opacity="0.85" rx="2"/>
-<text x="140" y="522" font-size="10" font-weight="bold" fill="#3218a9">US_ECHO_RF_RAW</text>
-<rect x="160" y="644" width="90.8" height="13" fill="white" fill-opacity="0.85" rx="2"/>
-<text x="162" y="654" font-size="10" font-weight="bold" fill="#18a953">US_ECHO_RR_RAW</text>
+<rect x="754" y="490" width="90.8" height="13" fill="white" fill-opacity="0.85" rx="2"/>
+<text x="756" y="500" font-size="10" font-weight="bold" fill="#62a918">US_ECHO_LF_RAW</text>
 <rect x="351" y="193" width="10" height="10" fill="#335"/>
 <circle cx="356" cy="220" r="4.5" fill="#335"/>
 <circle cx="356" cy="242" r="4.5" fill="#335"/>
@@ -1088,15 +1078,18 @@
 <rect x="527" y="105" width="10" height="10" fill="#335"/>
 <circle cx="532" cy="132" r="4.5" fill="#335"/>
 <circle cx="532" cy="154" r="4.5" fill="#335"/>
+<circle cx="532" cy="176" r="4.5" fill="#335"/>
 <text x="532.0" y="96.8" font-size="11" text-anchor="middle" fill="#113">J_DRV_L</text>
 <rect x="241" y="105" width="10" height="10" fill="#335"/>
 <circle cx="246" cy="132" r="4.5" fill="#335"/>
 <circle cx="246" cy="154" r="4.5" fill="#335"/>
+<circle cx="246" cy="176" r="4.5" fill="#335"/>
 <text x="246.0" y="96.8" font-size="11" text-anchor="middle" fill="#113">J_DRV_R</text>
-<rect x="373" y="105" width="10" height="10" fill="#335"/>
-<circle cx="378" cy="132" r="4.5" fill="#335"/>
-<circle cx="378" cy="154" r="4.5" fill="#335"/>
-<text x="378.0" y="96.8" font-size="11" text-anchor="middle" fill="#113">J_DRV_G</text>
+<rect x="307" y="105" width="10" height="10" fill="#335"/>
+<circle cx="312" cy="132" r="4.5" fill="#335"/>
+<circle cx="312" cy="154" r="4.5" fill="#335"/>
+<circle cx="312" cy="176" r="4.5" fill="#335"/>
+<text x="312.0" y="96.8" font-size="11" text-anchor="middle" fill="#113">J_DRV_G</text>
 <rect x="769" y="259" width="10" height="10" fill="#335"/>
 <circle cx="752" cy="264" r="4.5" fill="#335"/>
 <circle cx="730" cy="264" r="4.5" fill="#335"/>
@@ -1112,34 +1105,34 @@
 <circle cx="114" cy="198" r="4.5" fill="#335"/>
 <circle cx="136" cy="198" r="4.5" fill="#335"/>
 <text x="103.0" y="184.8" font-size="11" text-anchor="middle" fill="#113">J_ENC_G</text>
-<rect x="769" y="457" width="10" height="10" fill="#335"/>
-<circle cx="752" cy="462" r="4.5" fill="#335"/>
+<rect x="703" y="457" width="10" height="10" fill="#335"/>
 <circle cx="730" cy="462" r="4.5" fill="#335"/>
-<circle cx="708" cy="462" r="4.5" fill="#335"/>
+<circle cx="752" cy="462" r="4.5" fill="#335"/>
+<circle cx="774" cy="462" r="4.5" fill="#335"/>
 <text x="741.0" y="448.8" font-size="11" text-anchor="middle" fill="#113">J_US_LF</text>
 <rect x="725" y="501" width="10" height="10" fill="#335"/>
 <circle cx="642" cy="506" r="4.5" fill="#335"/>
 <text x="686.0" y="492.8" font-size="11" text-anchor="middle" fill="#113">R_ECHO_LF</text>
-<rect x="65" y="545" width="10" height="10" fill="#335"/>
-<circle cx="92" cy="550" r="4.5" fill="#335"/>
+<rect x="131" y="545" width="10" height="10" fill="#335"/>
 <circle cx="114" cy="550" r="4.5" fill="#335"/>
-<circle cx="136" cy="550" r="4.5" fill="#335"/>
+<circle cx="92" cy="550" r="4.5" fill="#335"/>
+<circle cx="70" cy="550" r="4.5" fill="#335"/>
 <text x="103.0" y="536.8" font-size="11" text-anchor="middle" fill="#113">J_US_RF</text>
 <rect x="131" y="479" width="10" height="10" fill="#335"/>
 <circle cx="136" cy="396" r="4.5" fill="#335"/>
 <text x="136.0" y="382.8" font-size="11" text-anchor="middle" fill="#113">R_ECHO_RF</text>
-<rect x="769" y="545" width="10" height="10" fill="#335"/>
-<circle cx="752" cy="550" r="4.5" fill="#335"/>
+<rect x="703" y="545" width="10" height="10" fill="#335"/>
 <circle cx="730" cy="550" r="4.5" fill="#335"/>
-<circle cx="708" cy="550" r="4.5" fill="#335"/>
+<circle cx="752" cy="550" r="4.5" fill="#335"/>
+<circle cx="774" cy="550" r="4.5" fill="#335"/>
 <text x="741.0" y="536.8" font-size="11" text-anchor="middle" fill="#113">J_US_LR</text>
 <rect x="681" y="611" width="10" height="10" fill="#335"/>
 <circle cx="598" cy="616" r="4.5" fill="#335"/>
 <text x="642.0" y="602.8" font-size="11" text-anchor="middle" fill="#113">R_ECHO_LR</text>
-<rect x="65" y="655" width="10" height="10" fill="#335"/>
-<circle cx="92" cy="660" r="4.5" fill="#335"/>
+<rect x="131" y="655" width="10" height="10" fill="#335"/>
 <circle cx="114" cy="660" r="4.5" fill="#335"/>
-<circle cx="136" cy="660" r="4.5" fill="#335"/>
+<circle cx="92" cy="660" r="4.5" fill="#335"/>
+<circle cx="70" cy="660" r="4.5" fill="#335"/>
 <text x="103.0" y="646.8" font-size="11" text-anchor="middle" fill="#113">J_US_RR</text>
 <rect x="175" y="655" width="10" height="10" fill="#335"/>
 <circle cx="180" cy="572" r="4.5" fill="#335"/>

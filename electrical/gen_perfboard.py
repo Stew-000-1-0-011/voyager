@@ -7,7 +7,7 @@ from pathlib import Path
 import colorsys
 import hashlib
 
-from netlist import BLUEPILL_ROW_A, BLUEPILL_ROW_B, BOARD_HOLES, PARTS, PLACEMENT, nets, pin_hole
+from netlist import BLUEPILL_ROW_A, BLUEPILL_ROW_B, BOARD_HOLES, PARTS, PLACEMENT, nets, pin_count, pin_hole
 from route import BARE, WIRE, Routing, route
 
 
@@ -66,11 +66,12 @@ def _orientation_section() -> list[str]:
 def _cable_section() -> list[str]:
     """Connector pin order as soldered on the board: crimp the cable housings to match."""
     lines = ["## コネクタのピン順(ケーブル製作用)", "",
-             "基板側のピン1(□)は必ず GND で、基板の外周(GND の母線)側にある。ケーブルはこの順に圧着する。", "",
+             "ピン順は相手のモジュールの端子と同じなので、ケーブルはまっすぐ(1番どうし)つなぐ。GND のピンは基板の外周"
+             "(GND の母線)側にある。図の□はピン1。空欄は基板側で何もつながないピン(ドライバの VM はバッテリーから直接)。", "",
              "| コネクタ | 1 | 2 | 3 | 4 |", "|---|---|---|---|---|"]
     for p in sorted(PARTS, key=lambda p: p.ref):
         if p.ref.startswith(("J_ENC", "J_US", "J_DRV", "J_PWR", "J_BUCK", "J_UART")):
-            cells = [p.pins.get(str(i), "") for i in range(1, 5)]
+            cells = [p.pins.get(str(i), "未接続" if i <= pin_count(p) else "") for i in range(1, 5)]
             lines.append(f"| {p.ref}({p.value}) | " + " | ".join(cells) + " |")
     return lines + [""]
 
@@ -201,9 +202,7 @@ def _svg(r: Routing, view: str) -> str:
                        f'fill="{_color(t.net)}">{t.net}</text>')
     # parts
     for p in PARTS:
-        holes = [pin_hole(p.ref, pin) for pin in sorted(p.pins, key=int)]
-        if p.ref in ("J_BP_A", "J_BP_B"):
-            holes = [pin_hole(p.ref, str(i)) for i in range(1, 21)]
+        holes = [pin_hole(p.ref, str(i)) for i in range(1, pin_count(p) + 1)]
         xs = [xy(hh)[0] for hh in holes]
         ys = [xy(hh)[1] for hh in holes]
         if not mirror:

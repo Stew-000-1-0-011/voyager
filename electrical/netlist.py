@@ -76,11 +76,16 @@ def _build_parts() -> list[Part]:
         _conn("J_PWR", "VBAT in", ["GND", "VBAT"], _TB2),
     ]
     for m in ("L", "R", "G"):
-        parts.append(_conn(f"J_DRV_{m}", "Driver IN", ["GND", f"{m}_IN1", f"{m}_IN2"], _XH.format(n=3)))
+        # same order as the DRV8871 module header (GND, VM, IN1, IN2) so the cable runs straight through;
+        # VM is fed from the battery harness, not from the board
+        parts.append(Part(f"J_DRV_{m}", "Driver IN", _CONN.format(4), _XH.format(n=4),
+                          {"1": "GND", "3": f"{m}_IN1", "4": f"{m}_IN2"}))
     for m in ("L", "R", "G"):
         parts.append(_conn(f"J_ENC_{m}", "Encoder", ["GND", "+3V3", f"ENC_{m}_A", f"ENC_{m}_B"], _XH.format(n=4)))
     for pos in ("LF", "RF", "LR", "RR"):
-        parts.append(_conn(f"J_US_{pos}", "HC-SR04", ["GND", "+5V", f"US_TRIG_{pos}", f"US_ECHO_{pos}_RAW"], _XH.format(n=4)))
+        # same order as the HC-SR04 header (Vcc, Trig, Echo, Gnd)
+        parts.append(_conn(f"J_US_{pos}", "HC-SR04", ["+5V", f"US_TRIG_{pos}", f"US_ECHO_{pos}_RAW", "GND"],
+                           _XH.format(n=4)))
         parts.append(_two(f"R_ECHO_{pos}", "1k", "Device:R", _R, f"US_ECHO_{pos}_RAW", f"US_ECHO_{pos}"))
     parts += [
         # MP1584 IN- and OUT- are the same node on the module: one GND wire
@@ -100,6 +105,21 @@ def _build_parts() -> list[Part]:
 
 
 PARTS: list[Part] = _build_parts()
+
+
+def pin_count(p: Part) -> int:
+    """Physical pins, including ones left unconnected."""
+    if p.symbol.startswith("Connector_Generic:Conn_01x"):
+        return int(p.symbol.rsplit("x", 1)[1])
+    return len(p.pins)
+
+
+def ground_pin(p: Part) -> str | None:
+    """The GND pin of a cable connector: its first or last pin, the one that sits on the board edge."""
+    for pin in ("1", str(pin_count(p))):
+        if p.pins.get(pin) == "GND":
+            return pin
+    return None
 
 # Pins tied together on the Blue Pill module itself: the board only has to reach one of each group.
 MODULE_BRIDGES: dict[str, list[tuple[str, str]]] = {
@@ -124,7 +144,7 @@ def nets() -> dict[str, list[tuple[str, str]]]:
 BOARD_HOLES = (33, 28)  # ~84 x 71mm, fits a 90 x 75mm board
 
 PLACEMENT: dict[str, tuple[int, int, int]] = {
-    # Cable connectors stand at right angles to the board edge with pin 1 (always GND) on the perimeter,
+    # Cable connectors stand at right angles to the board edge with their GND pin (first or last) on the perimeter,
     # where a bare ring wire on the solder side joins them all. Each connector sits on the side of the
     # Blue Pill row that drives it, in the same order as its pins, so the signal wires hardly cross.
     # Bluepill: pin 1 toward the front, USB toward the rear edge
@@ -133,17 +153,17 @@ PLACEMENT: dict[str, tuple[int, int, int]] = {
     # front edge (pins run toward the rear)
     "J_UART": (5, 0, 90),
     "J_DRV_L": (11, 0, 90),
-    "J_DRV_G": (18, 0, 90),
+    "J_DRV_G": (21, 0, 90),
     "J_DRV_R": (24, 0, 90),
     # left edge (pins run inward)
     "J_ENC_L": (0, 7, 0),
-    "J_US_LF": (0, 16, 0),
-    "J_US_LR": (0, 20, 0),
+    "J_US_LF": (3, 16, 180),
+    "J_US_LR": (3, 20, 180),
     # right edge
     "J_ENC_G": (32, 4, 180),
     "J_ENC_R": (32, 9, 180),
-    "J_US_RF": (32, 20, 180),
-    "J_US_RR": (32, 25, 180),
+    "J_US_RF": (29, 20, 0),
+    "J_US_RR": (29, 25, 0),
     # rear edge (pins run toward the front): power in, buck module
     "J_PWR": (1, 27, 270),
     "J_BUCK": (7, 27, 270),
@@ -185,9 +205,7 @@ def part_outline(ref: str) -> set[tuple[int, int]]:
     """Holes covered on the component side by a part's leads and body (approximate outline).
     XH housings and terminal blocks reach one hole past their end pins and one hole to either side."""
     p = next(q for q in PARTS if q.ref == ref)
-    pins = [pin_hole(ref, k) for k in sorted(p.pins, key=int)]
-    if ref.startswith("J_BP"):
-        pins = [pin_hole(ref, str(i)) for i in range(1, 21)]
+    pins = [pin_hole(ref, str(k)) for k in range(1, pin_count(p) + 1)]
     (c1, r1), (c2, r2) = pins[0], pins[-1]
     n = max(abs(c2 - c1), abs(r2 - r1)) or 1
     dc, dr = _DIRS[PLACEMENT[ref][2]]
