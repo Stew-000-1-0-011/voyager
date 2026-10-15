@@ -6,6 +6,8 @@ pub const ABSENT_MV: u16 = 3000;
 pub const CRITICAL_MV: u32 = 9900;
 pub const LOW_ENTER_MV: u32 = 10500;
 pub const LOW_EXIT_MV: u32 = 10700;
+/// Critical latches only after the average has stayed below CRITICAL_MV this many ticks (0.5s at 100Hz).
+pub const CRITICAL_HOLD_TICKS: u16 = 50;
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Watchdog {
@@ -43,13 +45,16 @@ pub struct BatteryMonitor {
     filtered_mv: Option<u32>,
     critical: bool,
     low: bool,
+    below_critical: u16,
 }
 
 impl BatteryMonitor {
-    /// Exponential moving average (new sample weight 1/16). `Absent` is reported
-    /// immediately and does not enter the average; `Critical` latches until reset.
+    /// Exponential moving average (new sample weight 1/16). `Absent` (e-stop / switch off) is reported
+    /// immediately and clears the history, so the bus decaying through 9.9V on its way to 0V cannot latch
+    /// `Critical`. `Critical` latches after CRITICAL_HOLD_TICKS below the limit, until power is cut.
     pub fn update(&mut self, raw_mv: u16) -> BatteryLevel {
         if raw_mv < ABSENT_MV {
+            *self = Self::default();
             return BatteryLevel::Absent;
         }
         let f = match self.filtered_mv {
@@ -57,7 +62,8 @@ impl BatteryMonitor {
             Some(f) => (f * 15 + raw_mv as u32) / 16,
         };
         self.filtered_mv = Some(f);
-        if f < CRITICAL_MV {
+        self.below_critical = if f < CRITICAL_MV { self.below_critical.saturating_add(1) } else { 0 };
+        if self.below_critical >= CRITICAL_HOLD_TICKS {
             self.critical = true;
         }
         if f < LOW_ENTER_MV {
@@ -189,6 +195,26 @@ mod tests {
         run(&mut m, 12000, 10);
         run(&mut m, 0, 500);
         assert_eq!(m.update(12000), BatteryLevel::Ok);
+    }
+
+    #[test]
+    fn power_off_ramp_does_not_latch_critical() {
+        // e-stop / main switch: the bus capacitor decays 12V -> 0 over ~200ms, then power returns
+        let mut m = BatteryMonitor::default();
+        run(&mut m, 12000, 20);
+        for k in 0..20u16 {
+            m.update(12000 - k * 600);
+        }
+        run(&mut m, 0, 10);
+        assert_eq!(run(&mut m, 12000, 5), BatteryLevel::Ok);
+    }
+
+    #[test]
+    fn genuinely_low_battery_relatches_after_power_cycle() {
+        let mut m = BatteryMonitor::default();
+        assert_eq!(run(&mut m, 9500, 100), BatteryLevel::Critical);
+        run(&mut m, 0, 5);
+        assert_eq!(run(&mut m, 9500, 100), BatteryLevel::Critical);
     }
 
     #[test]
