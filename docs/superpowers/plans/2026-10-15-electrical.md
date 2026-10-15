@@ -6,7 +6,7 @@
 
 **Architecture:** 部品・ピン・ネットは `netlist.py` だけで定義する。`gen_schematic.py` が kiutils で `.kicad_sch` を書き出す。回路図は、各ピンに短い配線とネットラベルを付ける「ラベル接続方式」にする。`gen_perfboard.py` は同じ定義から `perfboard.md`(部品配置と結線表)を書き出す。テストでは、kicad-cli で回路図からネットリストを出力し、`netlist.py` と照合する。
 
-**Tech Stack:** Python 3.13、uv、kiutils 1.4.8、pytest 9、KiCad 8(PPA `kicad/kicad-8.0-releases`。`kicad-cli sch erc` は KiCad 8 以降にしかない)
+**Tech Stack:** Python 3.13、uv、kiutils 1.4.8、cairosvg(SVG → PNG)、pytest 9、KiCad 8(PPA `kicad/kicad-8.0-releases`。`kicad-cli sch erc` は KiCad 8 以降にしかない)
 
 **Spec:** `docs/superpowers/specs/2026-10-15-carrier-robot-design.md`(5章)
 
@@ -18,6 +18,7 @@
 - 電源:LiPo 3S。非常停止より後ろの電池電圧を VBAT と呼ぶ。5V は外付け降圧モジュール、3.3V は Bluepill のオンボードレギュレータで作る。
 - DRV8871 モジュールと降圧モジュールは基板に載せず、コネクタ経由でつなぐ。
 - 生成物(`.kicad_sch` 以外の ERC レポートやネットリスト)はリポジトリに入れない。生成した `.kicad_sch` はコミットする(KiCad で開いて見られるようにするため)。
+- 図は PNG で `electrical/images/` に出力してコミットし、生成したらそのつど利用者に送る(SendUserFile)。対象は回路図、部品面の配線図、はんだ面の配線図。
 - ネット名は英大文字とアンダースコアのみ(例:`L_IN1`)。電源ネットは `VBAT`、`GND`、`+5V`、`+5V_BP`、`+3V3`。
 
 ## Review Focus
@@ -58,7 +59,7 @@
 
 - [ ] **Step 1: 環境を準備する**
 
-Run: `add-apt-repository -y ppa:kicad/kicad-8.0-releases && apt-get update && apt-get install -y --no-install-recommends kicad kicad-symbols && cd electrical && uv init --no-workspace --name carrier-electrical && uv add kiutils==1.4.8 && uv add --dev pytest`
+Run: `add-apt-repository -y ppa:kicad/kicad-8.0-releases && apt-get update && apt-get install -y --no-install-recommends kicad kicad-symbols && cd electrical && uv init --no-workspace --name carrier-electrical && uv add kiutils==1.4.8 cairosvg && uv add --dev pytest`
 Expected: `kicad-cli version` が 8.x を表示する。
 
 - [ ] **Step 2: 失敗するテストを書く**(`electrical/tests/test_netlist.py`)
@@ -232,15 +233,17 @@ kicad-cli sch erc --severity-error --exit-code-violations -o build/erc.rpt carri
 Run: `cd electrical && uv run pytest -v`
 Expected: 7 passed。ERC で「入力ピンが駆動されていない」というエラーが出た場合は、汎用コネクタ(すべて passive)とラベルだけで構成しているかを確認する。電源シンボルは使わない。
 
-- [ ] **Step 6: KiCad で開けることを確認する**
+- [ ] **Step 6: 回路図を画像で出力する**
 
-Run: `kicad-cli sch export pdf -o build/carrier.pdf electrical/carrier.kicad_sch`
-Expected: PDF が生成される。PDF を開き、ラベルが重なっていないことを目視で確認する。
+`electrical/scripts/export_images.sh` を作る:`kicad-cli sch export svg -o build/sch carrier.kicad_sch` のあと、`uv run python -c` で cairosvg を使って `build/sch/*.svg` を幅 2400px の PNG に変換し、`images/schematic.png` に置く。
+
+Run: `cd electrical && bash scripts/export_images.sh && ls images/`
+Expected: `images/schematic.png` ができる。画像を開き、ラベルが重なっていないこと、文字が読めることを確認してから、SendUserFile で利用者に送る。
 
 - [ ] **Step 7: コミットする**
 
 ```bash
-git add electrical/gen_schematic.py electrical/scripts/erc.sh electrical/tests/test_schematic.py electrical/carrier.kicad_sch electrical/carrier.kicad_pro
+git add electrical/gen_schematic.py electrical/scripts/erc.sh electrical/scripts/export_images.sh electrical/tests/test_schematic.py electrical/carrier.kicad_sch electrical/carrier.kicad_pro electrical/images/schematic.png
 git commit -m "feat(electrical): generate KiCad schematic and run ERC"
 ```
 
@@ -423,12 +426,14 @@ Expected: 17 passed。`test_few_signal_jumpers` だけが落ちる場合は、Ta
 - `perfboard_top.svg`:部品面から見た図。穴の格子、部品の外形と ref、ジャンパー線(AWG18 は太線)を描く。
 - `perfboard_bottom.svg`:はんだ面から見た図。**左右を反転して** 描き(実物を裏返したときの見た目に合わせる)、図の上部に「はんだ面(左右反転)」と書く。ネットごとに色を分けて裏面の配線を描き、穴に座標の目盛りを付ける。
 
-Run: `cd electrical && uv run python gen_perfboard.py && ls perfboard*`
-Expected: `perfboard.md`、`perfboard_top.svg`、`perfboard_bottom.svg` が生成される。SVG をブラウザで開き、配線どうしが重ならないことを目視で確認する。
+`export_images.sh` に、2つの SVG を幅 2400px の PNG(`images/perfboard_top.png`、`images/perfboard_bottom.png`)に変換する処理を追加する。
+
+Run: `cd electrical && uv run python gen_perfboard.py && bash scripts/export_images.sh && ls perfboard* images/`
+Expected: `perfboard.md`、2つの SVG、2つの PNG が生成される。PNG を開き、配線どうしが重ならないこと、座標の目盛りが読めることを確認してから、SendUserFile で利用者に送る。
 
 - [ ] **Step 6: コミットする**
 
 ```bash
-git add electrical/route.py electrical/tests/test_route.py electrical/gen_perfboard.py electrical/perfboard.md electrical/perfboard_top.svg electrical/perfboard_bottom.svg
+git add electrical/route.py electrical/tests/test_route.py electrical/gen_perfboard.py electrical/scripts/export_images.sh electrical/perfboard.md electrical/perfboard_top.svg electrical/perfboard_bottom.svg electrical/images/perfboard_top.png electrical/images/perfboard_bottom.png
 git commit -m "feat(electrical): perfboard routing (bottom traces, top jumpers) with SVG views"
 ```

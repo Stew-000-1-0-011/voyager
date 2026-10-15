@@ -6,7 +6,7 @@
 
 **Architecture:** 寸法はすべて `mechanical/params.py` に置き、部品のスクリプトはそこからだけ値を読む。歯形(インボリュート)の計算は純粋な関数として `mechanical/parts/involute.py` に分け、数値でテストする。組立てでは開いた状態と閉じた状態の両方を作り、テストで寸法を確かめる。
 
-**Tech Stack:** Python 3.13、uv、build123d 0.13、pytest 9
+**Tech Stack:** Python 3.13、uv、build123d 0.13、cairosvg(SVG → PNG)、pytest 9
 
 **Spec:** `docs/superpowers/specs/2026-10-15-carrier-robot-design.md`(3.1、4章)
 
@@ -19,6 +19,7 @@
 - 外形の上限:開いた状態・閉じた状態とも 500 × 500mm 以内(高さは 800mm 以内だが、実際は約150mm)。
 - 歯車:モジュール 1、圧力角 20°、ピニオン 20歯、歯幅 12mm、PETG。
 - 生成物(`mechanical/build/` の STEP と STL)はリポジトリに入れない。
+- 図は PNG で `mechanical/images/` に出力してコミットし、生成したらそのつど利用者に送る(SendUserFile)。
 - 実物を測るまで確定できない寸法(モーターの取付穴など)は、`params.py` に「要実測」とコメントを付けて置く。
 
 ## Review Focus
@@ -45,6 +46,8 @@ mechanical/
     sensors.py         sonar_mount()
   assembly.py          build(open: bool) -> Compound、export()
   cutlist.py           アルミ材の切断寸法表を出力
+  render.py            組立てと部品の図を PNG で出力
+  images/              出力した PNG(コミットする)
   tests/
     test_involute.py, test_gears.py, test_assembly.py
 ```
@@ -85,7 +88,7 @@ mechanical/
 
 - [ ] **Step 1: 環境を用意する**
 
-Run: `cd mechanical && uv init --no-workspace --name carrier-mechanical && uv add build123d==0.13.0 && uv add --dev pytest`
+Run: `cd mechanical && uv init --no-workspace --name carrier-mechanical && uv add build123d==0.13.0 cairosvg && uv add --dev pytest`
 Expected: `uv run python -c "import build123d"` が成功する。
 
 - [ ] **Step 2: 失敗するテストを書く**(`tests/test_involute.py`)
@@ -215,4 +218,15 @@ def test_rack_pitch_is_pi_m():
 
 - [ ] **Step 4: 成功を確認する** — Run: `cd mechanical && uv run pytest -v` / Expected: 19 passed
 - [ ] **Step 5: 出力する** — Run: `cd mechanical && uv run python assembly.py && uv run python cutlist.py && ls build/` / Expected: `assembly_open.step`、`assembly_closed.step`、部品ごとの `.stl`、`cutlist.md` がある。
-- [ ] **Step 6: コミットする** — `git commit -m "feat(mechanical): assembly with envelope/interference checks and exports"`
+- [ ] **Step 6: 図を出力する(`mechanical/render.py`)**
+
+build123d の `project_to_viewport` と `ExportSVG` で、隠れ線を点線にした投影図を SVG に書き、cairosvg で幅 1600px の PNG に変換する。出力するもの:
+- `images/assembly_open_iso.png`、`images/assembly_closed_iso.png`:等角図。
+- `images/assembly_open_views.png`:上面図・正面図・側面図を1枚に並べ、外形寸法(幅・全長・高さ)と開いたときの内幅を数値で書き込む。
+- `images/assembly_closed_views.png`:閉じた状態で同じもの。
+- `images/parts_printed.png`:3Dプリント部品(ピニオン、ラック、スライダー、アーム、各ブラケット、センサー取付具)の等角図を格子状に並べ、部品名を添える。
+
+Run: `cd mechanical && uv run python render.py && ls images/`
+Expected: 5枚の PNG ができる。画像を開いて部品が欠けていないことを確認してから、SendUserFile で利用者に送る。
+
+- [ ] **Step 7: コミットする** — `git add mechanical/render.py mechanical/images && git commit -m "feat(mechanical): assembly with envelope/interference checks, exports and images"`
