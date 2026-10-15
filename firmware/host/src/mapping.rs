@@ -33,7 +33,7 @@ impl Default for Mapping {
             open: "East".into(),
             slow_toggle: "North".into(),
             estop_release: "Start".into(),
-            invert_left_y: true,
+            invert_left_y: false,
         }
     }
 }
@@ -100,14 +100,15 @@ mod tests {
 
     #[test]
     fn full_stick_is_1000() {
-        let c = Mapper::default().command(&pad(-1.0, -1.0), &m());
+        // gilrs reports stick-up as +1.0 on every platform
+        let c = Mapper::default().command(&pad(1.0, -1.0), &m());
         assert_eq!(c.throttle, 1000);
         assert_eq!(c.turn, -1000);
     }
 
     #[test]
     fn edge_after_deadzone_is_small() {
-        let t = Mapper::default().command(&pad(-0.09, 0.0), &m()).throttle;
+        let t = Mapper::default().command(&pad(0.09, 0.0), &m()).throttle;
         assert!((1..=20).contains(&t), "{t}");
     }
 

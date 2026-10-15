@@ -5,4 +5,4 @@ close = "South"
 open = "East"
 slow_toggle = "North"
 estop_release = "Start"
-invert_left_y = true
+invert_left_y = false  # gilrs already reports stick-up as positive
