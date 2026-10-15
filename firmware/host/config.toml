@@ -1,0 +1,8 @@
+# Button names are gilrs Button names: South, East, North, West, LeftTrigger, RightTrigger,
+# LeftTrigger2, RightTrigger2, Select, Start, Mode, DPadUp, DPadDown, DPadLeft, DPadRight
+deadzone = 0.08
+close = "South"
+open = "East"
+slow_toggle = "North"
+estop_release = "Start"
+invert_left_y = true

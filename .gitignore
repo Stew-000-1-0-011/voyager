@@ -4,3 +4,4 @@ __pycache__/
 electrical/build/
 mechanical/build/
 target/
+logs/

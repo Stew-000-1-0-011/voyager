@@ -1,3 +1,3 @@
 [workspace]
-members = ["robot-core"]
+members = ["robot-core", "host"]
 resolver = "3"
