@@ -1,0 +1,18 @@
+[project]
+name = "carrier-electrical"
+version = "0.1.0"
+description = "Carrier board schematic and perfboard layout"
+requires-python = ">=3.13"
+dependencies = [
+    "cairosvg>=2.9.1",
+    "kiutils==1.4.8",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
