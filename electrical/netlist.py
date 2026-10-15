@@ -76,8 +76,6 @@ def _build_parts() -> list[Part]:
         _conn("J_PWR", "VBAT in", ["GND", "VBAT"], _TB2),
     ]
     for m in ("L", "R", "G"):
-        parts.append(_conn(f"J_VM_{m}", "Driver VM", ["GND", "VBAT"], _TB2))
-    for m in ("L", "R", "G"):
         parts.append(_conn(f"J_DRV_{m}", "Driver IN", ["GND", f"{m}_IN1", f"{m}_IN2"], _XH.format(n=3)))
     for m in ("L", "R", "G"):
         parts.append(_conn(f"J_ENC_{m}", "Encoder", ["GND", "+3V3", f"ENC_{m}_A", f"ENC_{m}_B"], _XH.format(n=4)))
@@ -133,13 +131,10 @@ PLACEMENT: dict[str, tuple[int, int, int]] = {
     "J_BP_B": (19, 8, 90),
     "J_BP_A": (25, 8, 90),
     # front edge (pins run toward the rear)
-    "J_VM_L": (1, 0, 90),
     "J_UART": (6, 0, 90),
     "J_DRV_L": (12, 0, 90),
     "J_DRV_G": (28, 0, 90),
-    "J_VM_G": (31, 0, 90),
     "J_DRV_R": (35, 0, 90),
-    "J_VM_R": (40, 0, 90),
     # left edge (pins run inward)
     "J_ENC_L": (0, 14, 0),
     "J_US_LF": (0, 20, 0),
@@ -166,7 +161,7 @@ PLACEMENT: dict[str, tuple[int, int, int]] = {
 }
 
 # Hole step between consecutive pin numbers.
-_PIN_STEP = {"J_PWR": 2, "J_VM_L": 2, "J_VM_R": 2, "J_VM_G": 2,
+_PIN_STEP = {"J_PWR": 2,
              "R_": 4, "D_5V": 4, "C_DIV": 2, "C_BULK": 1}
 
 _DIRS = {0: (1, 0), 90: (0, 1), 180: (-1, 0), 270: (0, -1)}

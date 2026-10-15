@@ -104,7 +104,7 @@ def test_no_point_to_point_signal_wires():
 def test_power_wires_reach_every_power_pin():
     heavy_ends = {(j.net, h) for j in R.jumpers if j.gauge == "AWG18" for h in (j.a, j.b)}
     for p in PARTS:
-        if p.ref in ("J_PWR", "J_VM_L", "J_VM_R", "J_VM_G", "J_BUCK", "C_BULK"):
+        if p.ref in ("J_PWR", "J_BUCK", "C_BULK"):
             for pin, net in p.pins.items():
                 if net in HEAVY_NETS:
                     assert (net, pin_hole(p.ref, pin)) in heavy_ends, (p.ref, pin)

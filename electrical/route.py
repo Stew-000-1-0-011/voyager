@@ -26,7 +26,7 @@ _LAYERS = (BOTTOM, TOP)
 
 HEAVY_NETS = ("VBAT", "GND")
 POWER_ROOT = "J_PWR"
-POWER_REFS = ("J_PWR", "J_VM_L", "J_VM_G", "J_VM_R", "J_BUCK", "C_BULK")
+POWER_REFS = ("J_PWR", "J_BUCK", "C_BULK")
 
 STEP_COST = {BOTTOM: 1.0, TOP: 1.4}  # prefer bare solder-side traces
 TURN_COST = 1.0
@@ -87,7 +87,7 @@ def top_keepout() -> set[Hole]:
         elif p.ref == "C_BULK":
             c, r = pins[0]
             out.update((c + dc, r + dr) for dc in range(-1, 3) for dr in range(-1, 2))  # 8mm can
-        elif p.ref.startswith(("J_PWR", "J_VM_")):
+        elif p.ref.startswith("J_PWR"):
             out.update(_widen(run, 2))                        # terminal block ~10mm wide
         elif p.ref.startswith(("J_DRV", "J_ENC", "J_US", "J_BUCK", "J_UART")):
             out.update(_widen(run, 1))                        # XH housing

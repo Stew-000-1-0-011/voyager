@@ -1615,9 +1615,9 @@
 <polyline points="620,286 642,286 664,286 686,286 708,286 730,286 752,286 774,286 796,286 818,286 840,286 862,286 884,286 906,286 928,286 950,286 972,286 994,286" fill="none" stroke="#9467bd" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
 <circle cx="620" cy="286" r="5" fill="none" stroke="#9467bd" stroke-width="2"/>
 <circle cx="994" cy="286" r="5" fill="none" stroke="#9467bd" stroke-width="2"/>
-<polyline points="620,286 620,264 598,264 576,264 554,264 532,264 510,264 488,264 466,264 444,264 422,264 400,264 378,264 356,264 334,264 312,264" fill="none" stroke="#9467bd" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<polyline points="620,286 620,264 598,264 576,264 554,264 532,264 510,264 488,264 466,264 444,264 422,264 400,264 378,264 356,264 334,264" fill="none" stroke="#9467bd" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
 <circle cx="620" cy="286" r="5" fill="none" stroke="#9467bd" stroke-width="2"/>
-<circle cx="312" cy="264" r="5" fill="none" stroke="#9467bd" stroke-width="2"/>
+<circle cx="334" cy="264" r="5" fill="none" stroke="#9467bd" stroke-width="2"/>
 <polyline points="488,880 488,858 488,836 488,814 488,792 488,770 488,748 488,726 488,704" fill="none" stroke="#222222" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
 <circle cx="488" cy="880" r="5" fill="none" stroke="#222222" stroke-width="2"/>
 <circle cx="488" cy="704" r="5" fill="none" stroke="#222222" stroke-width="2"/>
@@ -1677,18 +1677,6 @@
 <rect x="109" y="875" width="10" height="10" fill="#335"/>
 <circle cx="114" cy="836" r="4.5" fill="#335"/>
 <text x="114.0" y="822.8" font-size="11" text-anchor="middle" fill="#113">J_PWR</text>
-<rect x="82.1" y="100.1" width="19.8" height="63.8" fill="#ffffff" fill-opacity="0.7" stroke="#335" stroke-width="1.5" rx="3"/>
-<rect x="87" y="105" width="10" height="10" fill="#335"/>
-<circle cx="92" cy="154" r="4.5" fill="#335"/>
-<text x="92.0" y="96.8" font-size="11" text-anchor="middle" fill="#113">J_VM_L</text>
-<rect x="940.1" y="100.1" width="19.8" height="63.8" fill="#ffffff" fill-opacity="0.7" stroke="#335" stroke-width="1.5" rx="3"/>
-<rect x="945" y="105" width="10" height="10" fill="#335"/>
-<circle cx="950" cy="154" r="4.5" fill="#335"/>
-<text x="950.0" y="96.8" font-size="11" text-anchor="middle" fill="#113">J_VM_R</text>
-<rect x="742.1" y="100.1" width="19.8" height="63.8" fill="#ffffff" fill-opacity="0.7" stroke="#335" stroke-width="1.5" rx="3"/>
-<rect x="747" y="105" width="10" height="10" fill="#335"/>
-<circle cx="752" cy="154" r="4.5" fill="#335"/>
-<text x="752.0" y="96.8" font-size="11" text-anchor="middle" fill="#113">J_VM_G</text>
 <rect x="324.1" y="100.1" width="19.8" height="63.8" fill="#ffffff" fill-opacity="0.7" stroke="#335" stroke-width="1.5" rx="3"/>
 <rect x="329" y="105" width="10" height="10" fill="#335"/>
 <circle cx="334" cy="132" r="4.5" fill="#335"/>
@@ -1799,14 +1787,8 @@
 <text x="202.0" y="96.8" font-size="11" text-anchor="middle" fill="#113">J_UART</text>
 <line x1="114" y1="836" x2="158" y2="770" stroke="#d62728" stroke-width="6" stroke-opacity="0.85" stroke-linecap="round"/>
 <line x1="114" y1="836" x2="202" y2="858" stroke="#d62728" stroke-width="6" stroke-opacity="0.85" stroke-linecap="round"/>
-<line x1="158" y1="770" x2="92" y2="154" stroke="#d62728" stroke-width="6" stroke-opacity="0.85" stroke-linecap="round"/>
-<line x1="92" y1="154" x2="752" y2="154" stroke="#d62728" stroke-width="6" stroke-opacity="0.85" stroke-linecap="round"/>
-<line x1="752" y1="154" x2="950" y2="154" stroke="#d62728" stroke-width="6" stroke-opacity="0.85" stroke-linecap="round"/>
 <line x1="114" y1="880" x2="202" y2="880" stroke="#222222" stroke-width="6" stroke-opacity="0.85" stroke-linecap="round"/>
 <line x1="202" y1="880" x2="180" y2="770" stroke="#222222" stroke-width="6" stroke-opacity="0.85" stroke-linecap="round"/>
-<line x1="180" y1="770" x2="92" y2="110" stroke="#222222" stroke-width="6" stroke-opacity="0.85" stroke-linecap="round"/>
-<line x1="92" y1="110" x2="752" y2="110" stroke="#222222" stroke-width="6" stroke-opacity="0.85" stroke-linecap="round"/>
-<line x1="752" y1="110" x2="950" y2="110" stroke="#222222" stroke-width="6" stroke-opacity="0.85" stroke-linecap="round"/>
 <text x="629" y="290" font-size="10" text-anchor="start" fill="#a33">3V3</text>
 <text x="629" y="312" font-size="10" text-anchor="start" fill="#a33">G</text>
 <text x="629" y="334" font-size="10" text-anchor="start" fill="#a33">5V</text>
