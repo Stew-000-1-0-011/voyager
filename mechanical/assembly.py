@@ -18,23 +18,23 @@ def rack_pitch_lines() -> tuple[float, float]:
 # ---------------------------------------------------------------------------
 # chassis
 
-from build123d import Align, Box, Cylinder, Part, Pos, Rot  # noqa: E402
+from build123d import Align, Box, Cylinder, Part, Plane, Pos, Rot, mirror  # noqa: E402
 
 from params import (CASTER_D, CASTER_H, EXTRUSION, FRAME_W, FRAME_Z, MOTOR_DIA, MOTOR_LEN,  # noqa: E402
                     SONAR_SPACING, SONAR_Z, WHEEL_D, WHEEL_W, WHEEL_X)
-from parts.chassis import (MOUNT_T, board_mount, caster_mount, drive_motor_mount, frame_members,  # noqa: E402
+from parts.chassis import (board_mount, caster_mount, frame_members, motor_clamp, motor_clamp_cap,  # noqa: E402
                            upright_members)
 from parts.sensors import HOLDER_T, sonar_body, sonar_mount  # noqa: E402
 
 WHEEL_Y = FRAME_W / 2 - EXTRUSION - 3 - WHEEL_W / 2   # wheel centre |y|
-GEARBOX_FACE_Y = WHEEL_Y - WHEEL_W / 2 - 2 - MOUNT_T  # motor gearbox face |y|
+GEARBOX_FACE_Y = WHEEL_Y - WHEEL_W / 2 - 3       # motor gearbox face |y| (shaft reaches into the wheel hub)
 SONAR_X = SONAR_SPACING / 2
 ESTOP = (70.0, 70.0, 70.0)
 
 
 def _side(part: Part, left: bool) -> Part:
-    """Parts are modelled for the left (+Y) side; mirror by rotating 180 degrees about Z."""
-    return part if left else Rot(0, 0, 180) * part
+    """Parts are modelled for the left (+Y) side; the right side is their mirror image across y = 0."""
+    return part if left else mirror(part, Plane.XZ)
 
 
 def chassis() -> dict[str, Part]:
@@ -50,10 +50,11 @@ def chassis() -> dict[str, Part]:
         motor = Pos(WHEEL_X, 0, axis_z) * _side(
             Pos(0, GEARBOX_FACE_Y, 0) * Rot(90, 0, 0) * Cylinder(MOTOR_DIA / 2, MOTOR_LEN,
                                                                  align=(Align.CENTER, Align.CENTER, Align.MIN)), left)
-        mount = Pos(WHEEL_X, 0, axis_z) * _side(Pos(0, GEARBOX_FACE_Y, 0) * drive_motor_mount(), left)
         parts[f"wheel_{side}"] = wheel
         parts[f"motor_{side}"] = motor
-        parts[f"motor_mount_{side}"] = mount
+        parts[f"clamp_{side}"] = Pos(WHEEL_X, 0, axis_z) * _side(Pos(0, GEARBOX_FACE_Y, 0) * motor_clamp(), left)
+        parts[f"clamp_cap_{side}"] = Pos(WHEEL_X, 0, axis_z) * _side(
+            Pos(0, GEARBOX_FACE_Y, 0) * motor_clamp_cap(), left)
     rear_x = -(FRAME_D / 2 - EXTRUSION / 2)
     parts["caster_mount"] = Pos(rear_x, 0, FRAME_Z) * caster_mount()
     parts["caster"] = Pos(rear_x, 0, 0) * Cylinder(CASTER_D / 2, CASTER_H, align=(Align.CENTER, Align.CENTER, Align.MIN))
@@ -164,7 +165,6 @@ from pathlib import Path  # noqa: E402
 
 from build123d import Compound, export_step, export_stl  # noqa: E402
 
-from parts.chassis import drive_motor_mount as _drive_motor_mount  # noqa: E402
 from parts.gripper import rack_stop  # noqa: E402
 
 
@@ -181,7 +181,8 @@ def printed_parts() -> dict[str, tuple[Part, int]]:
         "bracket_l": (g["bracket_l"], 1),
         "bracket_r": (g["bracket_r"], 1),
         "deck": (gripper(True)["deck"], 1),
-        "drive_motor_mount": (_drive_motor_mount(), 2),
+        "motor_clamp": (motor_clamp(), 2),
+        "motor_clamp_cap": (motor_clamp_cap(), 2),
         "caster_mount": (caster_mount(), 1),
         "board_mount": (board_mount(), 1),
         "sonar_mount": (sonar_mount(), 4),

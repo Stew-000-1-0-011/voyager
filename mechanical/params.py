@@ -18,6 +18,7 @@ MOTOR_SHAFT_FLAT = 3.5   # D-cut: centre to flat = 3.5 - 2.0 = 1.5mm
 MOTOR_SHAFT_LEN = 10.0   # (measure)
 MOTOR_HOLE_PITCH = 17.0  # M3 holes on the gearbox face (measure)
 MOTOR_HOLE_D = 3.2
+GEARBOX_CLAMP_LEN = 18.0 # clamped length of the 25mm gearbox body (gearbox is ~19-24mm long, measure)
 
 # caster
 CASTER_H = 25.0          # ball caster height floor -> mounting face (measure)
@@ -38,6 +39,7 @@ ARM_T = 6.0
 PAD_Z_MIN = 30.0
 PAD_Z_MAX = 120.0
 PAD_T = 5.0              # pad incl. rubber
+DECK_T = 5.0             # gripper deck under the guide blocks
 RACK_Z = 140.0           # rack / pinion bottom face; above the arm plates so racks pass over the far arm
 
 # ultrasonic HC-SR04

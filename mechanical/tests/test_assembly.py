@@ -137,3 +137,20 @@ def test_brackets_hit_guides_at_full_close():
     for side in ("l", "r"):
         assert _touching(CLOSED[f"bracket_{side}"], CLOSED["guides"]), side
         assert not _touching(OPEN[f"bracket_{side}"], OPEN["guides"]), side
+
+
+def test_drive_motors_are_clamped_to_the_frame():
+    from params import GEARBOX_CLAMP_LEN
+
+    for side in ("l", "r"):
+        for part in (f"clamp_{side}", f"clamp_cap_{side}"):
+            assert _touching(OPEN[part], OPEN[f"motor_{side}"]), part
+        assert _touching(OPEN[f"clamp_{side}"], OPEN["frame"]), side
+        assert _touching(OPEN[f"clamp_cap_{side}"], OPEN[f"clamp_{side}"]), side
+        # the clamp grips the gearbox along its length, not just the face
+        assert OPEN[f"clamp_{side}"].bounding_box().size.Y >= GEARBOX_CLAMP_LEN - 1e-6
+
+
+def test_drive_motor_clamp_keeps_ground_clearance():
+    for side in ("l", "r"):
+        assert OPEN[f"clamp_cap_{side}"].bounding_box().min.Z >= 10.0

@@ -4,14 +4,13 @@ from __future__ import annotations
 
 from build123d import Align, Box, Cylinder, Part, Pos, Rot
 
-from params import ARM_T, BOX, GEAR_FACE, MODULE, MOTOR_HOLE_D, MOTOR_HOLE_PITCH, PAD_T, PAD_Z_MAX, PAD_Z_MIN
+from params import ARM_T, BOX, DECK_T, GEAR_FACE, MODULE, MOTOR_HOLE_D, MOTOR_HOLE_PITCH, PAD_T, PAD_Z_MAX, PAD_Z_MIN
 from parts.gears import RACK_BASE
 
 CLEAR = 0.3
 WALL = 3.0
 ARM_Z_MIN = PAD_Z_MIN - 10
 ARM_Z_MAX = PAD_Z_MAX + 10
-DECK_T = 3.0
 
 
 RACK_DEPTH = 2.25 * MODULE + RACK_BASE  # tooth tip to back face
