@@ -112,3 +112,69 @@ def nets() -> dict[str, list[tuple[str, str]]]:
         for pin, net in p.pins.items():
             out.setdefault(net, []).append((p.ref, pin))
     return out
+
+
+# ---------------------------------------------------------------------------
+# Perfboard placement (2.54mm grid). Column 0 = robot left edge, row 0 = front
+# edge, viewed from the component side. Rotation: direction in which pin
+# numbers advance (0: +col, 90: +row, 180: -col, 270: -row).
+
+BOARD_HOLES = (40, 32)  # ~100 x 80mm
+
+PLACEMENT: dict[str, tuple[int, int, int]] = {
+    # Bluepill: pin 1 toward the front, USB toward the rear edge
+    "J_BP_B": (17, 10, 90),
+    "J_BP_A": (23, 10, 90),
+    # front edge: drivers, driver power, gripper encoder
+    "J_VM_L": (1, 0, 0),
+    "J_DRV_L": (6, 0, 0),
+    "J_ENC_G": (11, 0, 0),
+    "J_DRV_G": (16, 0, 0),
+    "J_VM_G": (21, 0, 0),
+    "J_DRV_R": (27, 0, 0),
+    "J_VM_R": (34, 0, 0),
+    # left / right edges: wheel encoders and ultrasonic sensors
+    "J_US_LF": (0, 4, 90),
+    "J_ENC_L": (0, 12, 90),
+    "J_US_LR": (0, 22, 90),
+    "J_US_RF": (39, 4, 90),
+    "J_ENC_R": (39, 12, 90),
+    "J_US_RR": (39, 22, 90),
+    # rear edge: power in, buck module, expansion
+    "J_PWR": (2, 31, 0),
+    "J_BUCK": (8, 31, 0),
+    "J_UART": (26, 31, 0),
+    "J_I2C": (32, 31, 0),
+    # interior
+    "C_BULK": (2, 28, 0),
+    "R_DIV_H": (6, 27, 0),
+    "R_DIV_L": (10, 25, 180),
+    "C_DIV": (12, 23, 0),
+    "D_5V": (12, 30, 0),
+    "R_ECHO_LF": (3, 9, 0),
+    "R_ECHO_LR": (3, 20, 0),
+    "R_ECHO_RF": (36, 9, 180),
+    "R_ECHO_RR": (36, 20, 180),
+    "R_USB": (26, 27, 0),
+    "J_SPARE": (12, 12, 90),
+}
+
+# Hole step between consecutive pin numbers.
+_PIN_STEP = {"J_PWR": 2, "J_VM_L": 2, "J_VM_R": 2, "J_VM_G": 2,
+             "R_": 4, "D_5V": 4, "C_DIV": 2, "C_BULK": 1}
+
+_DIRS = {0: (1, 0), 90: (0, 1), 180: (-1, 0), 270: (0, -1)}
+
+
+def _pin_step(ref: str) -> int:
+    for key, step in _PIN_STEP.items():
+        if ref == key or (key.endswith("_") and ref.startswith(key)):
+            return step
+    return 1
+
+
+def pin_hole(ref: str, pin: str) -> tuple[int, int]:
+    c, r, rot = PLACEMENT[ref]
+    dc, dr = _DIRS[rot]
+    k = (int(pin) - 1) * _pin_step(ref)
+    return c + dc * k, r + dr * k
