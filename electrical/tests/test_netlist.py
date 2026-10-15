@@ -3,15 +3,13 @@ from netlist import FT_PINS, MCU_PIN_NET, PARTS, nets
 
 def test_spec_pin_assignment():
     expected = {
-        "PB6": "L_IN1", "PB7": "L_IN2", "PB8": "R_IN1", "PB9": "R_IN2",
-        "PA8": "G_IN1", "PA9": "G_IN2",
-        "PA0": "ENC_L_A", "PA1": "ENC_L_B", "PA6": "ENC_R_A", "PA7": "ENC_R_B",
-        "PB3": "ENC_G_A", "PB4": "ENC_G_B",
-        "PB0": "US_TRIG_F", "PB1": "US_TRIG_R",
-        "PB12": "US_ECHO_LF", "PB13": "US_ECHO_RF", "PB14": "US_ECHO_LR", "PB15": "US_ECHO_RR",
-        "PA4": "VBAT_SENSE", "PA2": "UART_TX", "PA3": "UART_RX",
-        "PB10": "I2C_SCL", "PB11": "I2C_SDA", "PA12": "USB_DP",
-        "PA5": "SPARE_PA5", "PA10": "SPARE_PA10", "PA15": "SPARE_PA15", "PB5": "SPARE_PB5",
+        "PA0": "L_IN1", "PA1": "L_IN2", "PB7": "R_IN1", "PB6": "R_IN2",
+        "PB9": "G_IN1", "PB8": "G_IN2",
+        "PA6": "ENC_L_A", "PA7": "ENC_L_B", "PA8": "ENC_R_A", "PA9": "ENC_R_B",
+        "PB4": "ENC_G_A", "PB3": "ENC_G_B",
+        "PB0": "US_TRIG_LF", "PB1": "US_TRIG_LR", "PB15": "US_TRIG_RF", "PB13": "US_TRIG_RR",
+        "PB10": "US_ECHO_LF", "PB11": "US_ECHO_LR", "PB14": "US_ECHO_RF", "PB12": "US_ECHO_RR",
+        "PA4": "VBAT_SENSE", "PA2": "UART_TX", "PA3": "UART_RX", "PA12": "USB_DP",
         "5V": "+5V_BP", "3V3": "+3V3", "G": "GND",
     }
     for pin, net in expected.items():
@@ -21,6 +19,11 @@ def test_spec_pin_assignment():
 def test_no_single_pin_nets():
     for net, conns in nets().items():
         assert len(conns) >= 2, net
+
+
+def test_echo_pins_use_distinct_exti_lines_10_to_15():
+    lines = [int(p[2:]) for p, n in MCU_PIN_NET.items() if n.startswith("US_ECHO")]
+    assert sorted(lines) == sorted(set(lines)) and all(10 <= n <= 15 for n in lines)
 
 
 def test_mcu_pins_unique():

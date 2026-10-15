@@ -1,9 +1,9 @@
-//! HC-SR04 echo capture: EXTI on PB12..PB15 (both edges), timed with the DWT cycle counter.
+//! HC-SR04 echo capture: EXTI on PB10, PB14, PB11, PB12 (both edges), timed with the DWT cycle counter.
 
 use robot_core::ultrasonic::echo_to_mm;
 
 /// Bit of each sensor's echo pin in GPIOB (left-front, right-front, left-rear, right-rear).
-pub const ECHO_BITS: [u32; 4] = [12, 13, 14, 15];
+pub const ECHO_BITS: [u32; 4] = [10, 14, 11, 12];
 
 #[derive(Default)]
 pub struct EchoCapture {

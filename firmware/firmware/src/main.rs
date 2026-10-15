@@ -30,12 +30,12 @@ mod app {
     use robot_core::safety::adc_to_mv;
     use stm32f1xx_hal::{
         adc::Adc,
-        gpio::{Alternate, Analog, Edge, ExtiPin, Output, PA4, PA8, PA9, PB0, PB1, PB6, PB7, PB8, PB9, PC13, PushPull},
+        gpio::{Alternate, Analog, Edge, ExtiPin, Output, PA0, PA1, PA4, PB0, PB1, PB6, PB7, PB8, PB9, PB13, PB15, PC13, PushPull},
         pac::{self, ADC1, TIM1, TIM2, TIM3, TIM4},
         prelude::*,
         rcc,
         timer::{
-            Ch, Channel, PwmHz, Tim1NoRemap, Tim4NoRemap,
+            Ch, Channel, PwmHz, Tim2NoRemap, Tim4NoRemap,
             pwm_input::{Qei, QeiExt, QeiOptions},
         },
         usb::{Peripheral, UsbBus, UsbBusType},
@@ -44,9 +44,16 @@ mod app {
     use usb_device::{bus::UsbBusAllocator, prelude::*};
     use usbd_serial::{SerialPort, USB_CLASS_CDC};
 
-    type DrivePwm = PwmHz<TIM4, Tim4NoRemap, (Ch<0>, Ch<1>, Ch<2>, Ch<3>),
+    /// TIM2 CH1..2 = PA0, PA1 (L_IN1, L_IN2)
+    type LeftPwm = PwmHz<TIM2, Tim2NoRemap, (Ch<0>, Ch<1>), (PA0<Alternate>, PA1<Alternate>)>;
+    /// TIM4 CH1..4 = PB6..PB9 (R_IN2, R_IN1, G_IN2, G_IN1)
+    type RightGripPwm = PwmHz<TIM4, Tim4NoRemap, (Ch<0>, Ch<1>, Ch<2>, Ch<3>),
         (PB6<Alternate>, PB7<Alternate>, PB8<Alternate>, PB9<Alternate>)>;
-    type GripPwm = PwmHz<TIM1, Tim1NoRemap, (Ch<0>, Ch<1>), (PA8<Alternate>, PA9<Alternate>)>;
+
+    // IN1 / IN2 channel of each driver
+    const LEFT: (Channel, Channel) = (Channel::C1, Channel::C2);
+    const RIGHT: (Channel, Channel) = (Channel::C2, Channel::C1);
+    const GRIP: (Channel, Channel) = (Channel::C4, Channel::C3);
 
     pub struct Usb {
         dev: UsbDevice<'static, UsbBusType>,
@@ -86,35 +93,35 @@ mod app {
         // PB3 / PB4 are JTAG pins: keep SWD only
         let (_pa15, pb3, pb4) = afio.mapr.disable_jtag(gpioa.pa15, gpiob.pb3, gpiob.pb4);
 
-        // drive PWM: TIM4 CH1..4 = PB6..PB9 (L_IN1, L_IN2, R_IN1, R_IN2)
-        let drive_pins = (
+        // Each row of the Blue Pill serves its own side of the board (spec 5.4):
+        // left motor PWM on TIM2 (PA0, PA1); right motor and gripper PWM on TIM4 (PB6..PB9)
+        let left_pins = (
+            gpioa.pa0.into_alternate_push_pull(&mut gpioa.crl),
+            gpioa.pa1.into_alternate_push_pull(&mut gpioa.crl),
+        );
+        let mut left_pwm = dp.TIM2.pwm_hz::<Tim2NoRemap, _, _>(left_pins, &mut afio.mapr, 20.kHz(), &mut rcc);
+        let rg_pins = (
             gpiob.pb6.into_alternate_push_pull(&mut gpiob.crl),
             gpiob.pb7.into_alternate_push_pull(&mut gpiob.crl),
             gpiob.pb8.into_alternate_push_pull(&mut gpiob.crh),
             gpiob.pb9.into_alternate_push_pull(&mut gpiob.crh),
         );
-        let mut drive_pwm = dp.TIM4.pwm_hz::<Tim4NoRemap, _, _>(drive_pins, &mut afio.mapr, 20.kHz(), &mut rcc);
-        // gripper PWM: TIM1 CH1..2 = PA8, PA9 (G_IN1, G_IN2)
-        let grip_pins = (
-            gpioa.pa8.into_alternate_push_pull(&mut gpioa.crh),
-            gpioa.pa9.into_alternate_push_pull(&mut gpioa.crh),
-        );
-        let mut grip_pwm = dp.TIM1.pwm_hz::<Tim1NoRemap, _, _>(grip_pins, &mut afio.mapr, 20.kHz(), &mut rcc);
+        let mut rg_pwm = dp.TIM4.pwm_hz::<Tim4NoRemap, _, _>(rg_pins, &mut afio.mapr, 20.kHz(), &mut rcc);
+        left_pwm.enable(Channel::C1);
+        left_pwm.enable(Channel::C2);
         for ch in [Channel::C1, Channel::C2, Channel::C3, Channel::C4] {
-            drive_pwm.enable(ch);
+            rg_pwm.enable(ch);
         }
-        grip_pwm.enable(Channel::C1);
-        grip_pwm.enable(Channel::C2);
         // start braked
-        drive(&mut drive_pwm, Channel::C1, Channel::C2, 0);
-        drive(&mut drive_pwm, Channel::C3, Channel::C4, 0);
-        drive(&mut grip_pwm, Channel::C1, Channel::C2, 0);
+        drive(&mut left_pwm, LEFT.0, LEFT.1, 0);
+        drive(&mut rg_pwm, RIGHT.0, RIGHT.1, 0);
+        drive(&mut rg_pwm, GRIP.0, GRIP.1, 0);
 
-        // wheel encoders
-        let qei_left = dp.TIM2.qei((gpioa.pa0, gpioa.pa1), QeiOptions::default(), &mut rcc);
-        let qei_right = dp.TIM3.qei((gpioa.pa6, gpioa.pa7), QeiOptions::default(), &mut rcc);
+        // wheel encoders: left TIM3 (PA6, PA7), right TIM1 (PA8, PA9)
+        let qei_left = dp.TIM3.qei((gpioa.pa6, gpioa.pa7), QeiOptions::default(), &mut rcc);
+        let qei_right = dp.TIM1.qei((gpioa.pa8, gpioa.pa9), QeiOptions::default(), &mut rcc);
 
-        // gripper encoder: EXTI3 / EXTI4, both edges
+        // gripper encoder: A = PB4 (EXTI4), B = PB3 (EXTI3), both edges
         let mut grip_a = pb3.into_pull_up_input(&mut gpiob.crl);
         let mut grip_b = pb4.into_pull_up_input(&mut gpiob.crl);
         for p in [&mut grip_a as &mut dyn ExtiPin, &mut grip_b] {
@@ -123,14 +130,19 @@ mod app {
             p.enable_interrupt(&mut exti);
         }
 
-        // ultrasonic: triggers PB0 / PB1, echoes PB12..PB15 on EXTI15_10
-        let trig_front = gpiob.pb0.into_push_pull_output(&mut gpiob.crl);
-        let trig_rear = gpiob.pb1.into_push_pull_output(&mut gpiob.crl);
+        // ultrasonic: one trigger per sensor (LF PB0, RF PB15, LR PB1, RR PB13),
+        // echoes LF PB10, RF PB14, LR PB11, RR PB12 on EXTI15_10
+        let trig = Triggers {
+            lf: gpiob.pb0.into_push_pull_output(&mut gpiob.crl),
+            rf: gpiob.pb15.into_push_pull_output(&mut gpiob.crh),
+            lr: gpiob.pb1.into_push_pull_output(&mut gpiob.crl),
+            rr: gpiob.pb13.into_push_pull_output(&mut gpiob.crh),
+        };
+        let mut e10 = gpiob.pb10.into_floating_input(&mut gpiob.crh);
+        let mut e11 = gpiob.pb11.into_floating_input(&mut gpiob.crh);
         let mut e12 = gpiob.pb12.into_floating_input(&mut gpiob.crh);
-        let mut e13 = gpiob.pb13.into_floating_input(&mut gpiob.crh);
         let mut e14 = gpiob.pb14.into_floating_input(&mut gpiob.crh);
-        let mut e15 = gpiob.pb15.into_floating_input(&mut gpiob.crh);
-        for p in [&mut e12 as &mut dyn ExtiPin, &mut e13, &mut e14, &mut e15] {
+        for p in [&mut e10 as &mut dyn ExtiPin, &mut e11, &mut e12, &mut e14] {
             p.make_interrupt_source(&mut afio);
             p.trigger_on_edge(&mut exti, Edge::RisingFalling);
             p.enable_interrupt(&mut exti);
@@ -177,8 +189,8 @@ mod app {
                 grip_enc_b: GripEncB,
                 sonar_echo: SonarEcho { capture: EchoCapture::default() },
                 control: Control {
-                    drive_pwm,
-                    grip_pwm,
+                    left_pwm,
+                    rg_pwm,
                     qei_left,
                     qei_right,
                     adc,
@@ -187,7 +199,7 @@ mod app {
                     iwdg,
                     controller: Controller::new(DEFAULT_GRIPPER),
                 },
-                sonar_trigger: SonarTrigger { front: trig_front, rear: trig_rear },
+                sonar_trigger: SonarTrigger { trig },
             },
         )
     }
@@ -245,7 +257,7 @@ mod app {
         let exti = unsafe { &*pac::EXTI::ptr() };
         exti.pr().write(|w| unsafe { w.bits(1 << line) });
         let idr = unsafe { (*pac::GPIOB::ptr()).idr().read().bits() };
-        quad.update(idr & (1 << 3) != 0, idr & (1 << 4) != 0);
+        quad.update(idr & (1 << 4) != 0, idr & (1 << 3) != 0);
     }
 
     #[task(binds = EXTI3, priority = 4, shared = [grip_quad])]
@@ -295,10 +307,10 @@ mod app {
 
     #[async_task(priority = 2, shared = [usb, latest_cmd, grip_quad, sonar_mm])]
     struct Control {
-        drive_pwm: DrivePwm,
-        grip_pwm: GripPwm,
-        qei_left: Qei<TIM2>,
-        qei_right: Qei<TIM3>,
+        left_pwm: LeftPwm,
+        rg_pwm: RightGripPwm,
+        qei_left: Qei<TIM3>,
+        qei_right: Qei<TIM1>,
         adc: Adc<ADC1>,
         vbat: PA4<Analog>,
         led: PC13<Output<PushPull>>,
@@ -334,9 +346,9 @@ mod app {
                     enc_grip,
                 });
 
-                drive(&mut self.drive_pwm, Channel::C1, Channel::C2, out.left);
-                drive(&mut self.drive_pwm, Channel::C3, Channel::C4, out.right);
-                drive(&mut self.grip_pwm, Channel::C1, Channel::C2, out.grip);
+                drive(&mut self.left_pwm, LEFT.0, LEFT.1, out.left);
+                drive(&mut self.rg_pwm, RIGHT.0, RIGHT.1, out.right);
+                drive(&mut self.rg_pwm, GRIP.0, GRIP.1, out.grip);
 
                 if tick % 5 == 0 {
                     seq = seq.wrapping_add(1);
@@ -366,10 +378,16 @@ mod app {
         }
     }
 
+    pub struct Triggers {
+        lf: PB0<Output<PushPull>>,
+        rf: PB15<Output<PushPull>>,
+        lr: PB1<Output<PushPull>>,
+        rr: PB13<Output<PushPull>>,
+    }
+
     #[async_task(priority = 1)]
     struct SonarTrigger {
-        front: PB0<Output<PushPull>>,
-        rear: PB1<Output<PushPull>>,
+        trig: Triggers,
     }
     impl RticAsyncTask for SonarTrigger {
         type SpawnInput = ();
@@ -377,14 +395,19 @@ mod app {
             let mut front = true;
             loop {
                 // 10us trigger pulse; left and right of a pair fire together
+                let t = &mut self.trig;
                 if front {
-                    self.front.set_high();
+                    t.lf.set_high();
+                    t.rf.set_high();
                     cortex_m::asm::delay(CPU_HZ / 100_000);
-                    self.front.set_low();
+                    t.lf.set_low();
+                    t.rf.set_low();
                 } else {
-                    self.rear.set_high();
+                    t.lr.set_high();
+                    t.rr.set_high();
                     cortex_m::asm::delay(CPU_HZ / 100_000);
-                    self.rear.set_low();
+                    t.lr.set_low();
+                    t.rr.set_low();
                 }
                 front = !front;
                 Mono::delay(33.millis()).await;

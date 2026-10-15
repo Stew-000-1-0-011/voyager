@@ -1,6 +1,6 @@
 from collections import Counter
 
-from netlist import BOARD_HOLES, PARTS, nets, pin_hole
+from netlist import BOARD_HOLES, MODULE_BRIDGES, PARTS, nets, pin_hole
 from route import BOTTOM, HEAVY_NETS, TOP, route, top_keepout
 
 R = route()
@@ -18,6 +18,9 @@ def test_every_net_fully_connected():
     for net, conns in nets().items():
         holes = {pin_hole(ref, pin) for ref, pin in conns}
         parent = {}
+        group = [pin_hole(ref, pin) for ref, pin in MODULE_BRIDGES.get(net, [])]
+        for a, b in zip(group, group[1:]):
+            parent[_find(parent, a)] = _find(parent, b)  # tied together on the Blue Pill itself
         for t in R.traces:
             if t.net != net:
                 continue
@@ -120,5 +123,5 @@ def test_ground_ring_runs_around_the_perimeter():
 
 
 def test_bus_layout_keeps_wiring_short():
-    # 45 insulated wires before the GND ring; dropping J_SPARE would save two more
-    assert len([t for t in R.traces if t.layer == TOP]) <= 34
+    # 45 insulated wires before the GND ring, 34 with it; 6 once pins and connectors were grouped by side
+    assert len([t for t in R.traces if t.layer == TOP]) <= 8

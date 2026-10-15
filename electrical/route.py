@@ -16,7 +16,7 @@ import heapq
 import random
 from dataclasses import dataclass, field
 
-from netlist import BOARD_HOLES, PARTS, PLACEMENT, nets, pin_hole
+from netlist import BOARD_HOLES, MODULE_BRIDGES, PARTS, PLACEMENT, nets, pin_hole
 
 Hole = tuple[int, int]
 
@@ -89,7 +89,7 @@ def top_keepout() -> set[Hole]:
             out.update((c + dc, r + dr) for dc in range(-1, 3) for dr in range(-1, 2))  # 8mm can
         elif p.ref.startswith(("J_PWR", "J_VM_")):
             out.update(_widen(run, 2))                        # terminal block ~10mm wide
-        elif p.ref.startswith(("J_DRV", "J_ENC", "J_US", "J_BUCK", "J_UART", "J_I2C")):
+        elif p.ref.startswith(("J_DRV", "J_ENC", "J_US", "J_BUCK", "J_UART")):
             out.update(_widen(run, 1))                        # XH housing
     return {(c, r) for c, r in out if 0 <= c < cols and 0 <= r < rows}
 
@@ -285,6 +285,11 @@ def route() -> Routing:
     power = _power_chain()
     all_nets = nets()
     pins = {n: {pin_hole(ref, pin) for ref, pin in conns} for n, conns in all_nets.items()}
+    bridged = {n: {pin_hole(ref, pin) for ref, pin in g} for n, g in MODULE_BRIDGES.items()}
+    if "GND" in bridged:
+        # the ring is the root: one Blue Pill ground pin wired to it brings the module's others along
+        keep = max(bridged["GND"], key=lambda h: h[1])
+        pins["GND"] -= bridged["GND"] - {keep}
     order = sorted(all_nets, key=lambda n: (len(all_nets[n]), n))
 
     ring = ground_ring()
@@ -292,6 +297,8 @@ def route() -> Routing:
 
     def roots(net: str) -> set[Hole]:
         out = {h for j in power if j.net == net for h in (j.a, j.b)} if net in HEAVY_NETS else {min(pins[net])}
+        if net in bridged and net != "GND":
+            out = set(bridged[net])
         if net == "GND":
             out |= set(ring)
         return out

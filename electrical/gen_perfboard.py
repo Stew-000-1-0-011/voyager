@@ -71,7 +71,7 @@ def _cable_section() -> list[str]:
              "基板側のピン1(□)は必ず GND で、基板の外周(GND の母線)側にある。ケーブルはこの順に圧着する。", "",
              "| コネクタ | 1 | 2 | 3 | 4 |", "|---|---|---|---|---|"]
     for p in sorted(PARTS, key=lambda p: p.ref):
-        if p.ref.startswith(("J_ENC", "J_US", "J_DRV", "J_VM", "J_PWR", "J_BUCK", "J_UART", "J_I2C")):
+        if p.ref.startswith(("J_ENC", "J_US", "J_DRV", "J_VM", "J_PWR", "J_BUCK", "J_UART")):
             cells = [p.pins.get(str(i), "") for i in range(1, 5)]
             lines.append(f"| {p.ref}({p.value}) | " + " | ".join(cells) + " |")
     return lines + [""]
