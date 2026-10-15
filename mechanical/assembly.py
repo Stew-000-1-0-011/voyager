@@ -22,7 +22,8 @@ from build123d import Align, Box, Cylinder, Part, Pos, Rot  # noqa: E402
 
 from params import (CASTER_D, CASTER_H, EXTRUSION, FRAME_W, FRAME_Z, MOTOR_DIA, MOTOR_LEN,  # noqa: E402
                     SONAR_SPACING, SONAR_Z, WHEEL_D, WHEEL_W, WHEEL_X)
-from parts.chassis import MOUNT_T, board_mount, caster_mount, drive_motor_mount, frame_members  # noqa: E402
+from parts.chassis import (MOUNT_T, board_mount, caster_mount, drive_motor_mount, frame_members,  # noqa: E402
+                           upright_members)
 from parts.sensors import HOLDER_T, sonar_body, sonar_mount  # noqa: E402
 
 WHEEL_Y = FRAME_W / 2 - EXTRUSION - 3 - WHEEL_W / 2   # wheel centre |y|
@@ -74,14 +75,16 @@ from params import ARM_LEN, BOX, CLOSED_INNER, GEAR_FACE, RACK_Z  # noqa: E402
 import math  # noqa: E402
 
 from parts.gears import RACK_LEN, pinion, rack, rack_teeth  # noqa: E402
-from parts.gripper import (ARM_Z_MAX, GRIP_PLATE_T, PINION_GAP, arm, guide_block,  # noqa: E402
-                           grip_motor_mount, pad)
+from parts.gripper import (ARM_Z_MAX, CLEAR, DECK_T, WALL, arm, deck, guide_block, pad,  # noqa: E402
+                           rack_stop)
 
 ARM_X0 = FRAME_D / 2 + 2.0            # arm plates start just ahead of the frame
 ARM_X1 = FRAME_D / 2 + ARM_LEN        # arm tip
 PAD_X0 = ARM_X1 - BOX
 POST = 10.0                           # bracket post size
 GUIDE_SPANS = ((25.0, 45.0), (50.0, 70.0))  # |y| ranges of the guide blocks (always inside the rack overlap)
+DECK_TOP = RACK_Z - CLEAR - WALL      # guide blocks sit on the deck
+DECK_HALF_Y = 68.0                    # stays clear of the right bracket post at full close
 
 
 def arm_plate_y(open_: bool) -> float:
@@ -112,10 +115,10 @@ def gripper(open_: bool) -> dict[str, Part]:
     end_r = yr + ARM_T / 2
     parts["rack_r"] = Pos(rear, end_r + length, RACK_Z) * Rot(0, 0, -90) * rack(RACK_LEN)
     parts["pinion"] = Pos(PINION_X, 0, RACK_Z) * pinion()
-    plate_top = RACK_Z - PINION_GAP
-    parts["grip_motor"] = Pos(PINION_X, 0, plate_top - GRIP_PLATE_T - MOTOR_LEN) * Cylinder(
-        MOTOR_DIA / 2, MOTOR_LEN, align=(Align.CENTER, Align.CENTER, Align.MIN))
-    parts["grip_motor_mount"] = Pos(PINION_X, 0, plate_top) * grip_motor_mount()
+    # stops ride on the rack backs; at full open they hit the outer end of the inner guide block
+    stop_s = GUIDE_SPANS[0][0] - 8.0 - (arm_plate_y(True) - ARM_T / 2) + length
+    parts["stop_l"] = Pos(front, end_l - length, RACK_Z) * Rot(0, 0, 90) * Pos(stop_s, 0, 0) * rack_stop()
+    parts["stop_r"] = Pos(rear, end_r + length, RACK_Z) * Rot(0, 0, -90) * Pos(stop_s, 0, 0) * rack_stop()
 
     guides = None
     for y0, _y1 in GUIDE_SPANS:
@@ -124,6 +127,13 @@ def gripper(open_: bool) -> dict[str, Part]:
             g = Pos(pitch, sgn * y0, RACK_Z + GEAR_FACE / 2) * Rot(0, 0, rot) * Pos(0, 1.0, 0) * guide_block()
             guides = g if guides is None else guides + g
     parts["guides"] = guides
+
+    # deck under the guide blocks, carried by two 20mm uprights on the front frame member
+    gb = guides.bounding_box()
+    parts["deck"] = Pos(0, 0, DECK_TOP) * deck(gb.min.X, gb.max.X, DECK_HALF_Y, PINION_X)
+    parts["grip_motor"] = Pos(PINION_X, 0, DECK_TOP - DECK_T - MOTOR_LEN) * Cylinder(
+        MOTOR_DIA / 2, MOTOR_LEN, align=(Align.CENTER, Align.CENTER, Align.MIN))
+    parts["uprights"] = upright_members()[0][2] + upright_members()[1][2]
 
     rack_top = RACK_Z + GEAR_FACE
     for side, y in (("l", yl), ("r", yr)):
@@ -170,7 +180,7 @@ def printed_parts() -> dict[str, tuple[Part, int]]:
         "pad": (pad(), 2),
         "bracket_l": (g["bracket_l"], 1),
         "bracket_r": (g["bracket_r"], 1),
-        "grip_motor_mount": (grip_motor_mount(), 1),
+        "deck": (gripper(True)["deck"], 1),
         "drive_motor_mount": (_drive_motor_mount(), 2),
         "caster_mount": (caster_mount(), 1),
         "board_mount": (board_mount(), 1),

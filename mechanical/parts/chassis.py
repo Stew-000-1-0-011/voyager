@@ -60,3 +60,18 @@ def board_mount() -> Part:
             plate += Pos(sx * (BOARD[0] / 2 - 4), sy * (BOARD[1] / 2 - 4), 3) * Cylinder(3, 8,
                                                                                       align=(Align.CENTER, Align.CENTER, Align.MIN))
     return plate
+
+
+UPRIGHT_Y = 40.0   # clear of the gripper motor (r 12.5) and of the right bracket (|y| >= 70)
+
+
+def upright_members() -> list[tuple[str, float, Part]]:
+    """Two vertical 20mm extrusions on the front member carrying the gripper deck (top at DECK_BOTTOM)."""
+    from params import RACK_Z
+
+    deck_bottom = RACK_Z - 0.3 - 3.0 - 3.0  # rack clearance, guide wall, deck thickness
+    length = deck_bottom - (FRAME_Z + E)
+    x = FRAME_D / 2 - E / 2
+    return [(f"upright_{n}", length,
+             Pos(x, s * UPRIGHT_Y, FRAME_Z + E) * Box(E, E, length, align=(Align.CENTER, Align.CENTER, Align.MIN)))
+            for n, s in (("l", 1), ("r", -1))]

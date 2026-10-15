@@ -15,7 +15,9 @@ RACK_BASE = 6.0  # rack body thickness behind the tooth roots
 M3_CLEAR = 3.2
 M3_NUT_AF = 5.6
 M3_NUT_T = 2.6
-SET_SCREW_Z = 3.0  # the 10mm motor shaft enters ~6mm, so the set screw sits low
+HUB_D = 14.0
+HUB_H = 5.0        # passes through the deck so the 10mm motor shaft engages ~8mm
+SET_SCREW_Z = -HUB_H / 2
 
 
 def _prism(points: list[tuple[float, float]], height: float) -> Part:
@@ -28,16 +30,18 @@ def pinion_blank() -> Part:
 
 
 def pinion() -> Part:
-    """Gear centred on the Z axis, z 0..GEAR_FACE, D bore with an M3 set screw + nut trap on +X."""
+    """Gear centred on the Z axis (gear z 0..GEAR_FACE) with a hub below (z -HUB_H..0) that reaches down
+    through the deck to the motor shaft. D bore all through; M3 set screw + nut trap in the hub on +X."""
     r = MOTOR_SHAFT_D / 2
     flat = MOTOR_SHAFT_FLAT - r  # centre -> flat
-    bore = Cylinder(r, GEAR_FACE, align=(Align.CENTER, Align.CENTER, Align.MIN))
-    bore -= Pos(flat + r, 0, GEAR_FACE / 2) * Box(2 * r, 2 * r + 1, GEAR_FACE + 1)
+    body = pinion_blank() + Pos(0, 0, -HUB_H) * Cylinder(HUB_D / 2, HUB_H, align=(Align.CENTER, Align.CENTER, Align.MIN))
+    total = GEAR_FACE + HUB_H
+    bore = Pos(0, 0, -HUB_H) * Cylinder(r, total, align=(Align.CENTER, Align.CENTER, Align.MIN))
+    bore -= Pos(flat + r, 0, -HUB_H + total / 2) * Box(2 * r, 2 * r + 1, total + 1)
     screw = Pos(0, 0, SET_SCREW_Z) * Rot(0, 90, 0) * Cylinder(M3_CLEAR / 2, 12,
-                                                                align=(Align.CENTER, Align.CENTER, Align.MIN))
-    nut = Pos(5.0, 0, SET_SCREW_Z - M3_NUT_AF / 2) * Box(M3_NUT_T, M3_NUT_AF, GEAR_FACE,
-                                          align=(Align.CENTER, Align.CENTER, Align.MIN))
-    return pinion_blank() - bore - screw - nut
+                                                              align=(Align.CENTER, Align.CENTER, Align.MIN))
+    nut = Pos(4.5, 0, SET_SCREW_Z) * Box(M3_NUT_T, M3_NUT_AF, M3_NUT_AF + 1)
+    return body - bore - screw - nut
 
 
 def rack_teeth(length: float) -> int:

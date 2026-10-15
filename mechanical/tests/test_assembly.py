@@ -113,3 +113,27 @@ def test_pad_height_hits_box():
         bb = OPEN[side].bounding_box()
         assert bb.min.Z == pytest.approx(PAD_Z_MIN) and bb.max.Z == pytest.approx(PAD_Z_MAX)
         assert 0 <= bb.min.Z and bb.max.Z <= BOX
+
+
+def _touching(a, b) -> bool:
+    return a.distance_to(b) < 0.05
+
+
+def test_gripper_is_carried_by_the_frame():
+    for parts in (OPEN, CLOSED):
+        assert _touching(parts["guides"], parts["deck"])
+        assert _touching(parts["deck"], parts["uprights"])
+        assert _touching(parts["uprights"], parts["frame"])
+        assert _touching(parts["grip_motor"], parts["deck"])
+
+
+def test_rack_stops_hit_guides_at_full_open():
+    for side in ("l", "r"):
+        assert _touching(OPEN[f"stop_{side}"], OPEN["guides"]), side
+        assert not _touching(CLOSED[f"stop_{side}"], CLOSED["guides"]), side
+
+
+def test_brackets_hit_guides_at_full_close():
+    for side in ("l", "r"):
+        assert _touching(CLOSED[f"bracket_{side}"], CLOSED["guides"]), side
+        assert not _touching(OPEN[f"bracket_{side}"], OPEN["guides"]), side

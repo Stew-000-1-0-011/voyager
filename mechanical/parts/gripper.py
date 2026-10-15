@@ -11,8 +11,7 @@ CLEAR = 0.3
 WALL = 3.0
 ARM_Z_MIN = PAD_Z_MIN - 10
 ARM_Z_MAX = PAD_Z_MAX + 10
-GRIP_PLATE_T = 3.0
-PINION_GAP = 1.0   # pinion underside above the motor plate
+DECK_T = 3.0
 
 
 RACK_DEPTH = 2.25 * MODULE + RACK_BASE  # tooth tip to back face
@@ -42,17 +41,18 @@ def arm_bracket(height: float) -> Part:
     return Box(20, ARM_T, height, align=(Align.MIN, Align.CENTER, Align.MIN))
 
 
-def grip_motor_mount() -> Part:
-    """Plate holding the JGA25-370 vertically (shaft up) under the pinion. Plate top at z = 0; the gearbox
-    face screws to its underside (z = -GRIP_PLATE_T) so the shaft reaches into the pinion."""
-    plate = Box(40, 40, GRIP_PLATE_T, align=(Align.CENTER, Align.CENTER, Align.MAX))
-    plate -= Cylinder(7.5, GRIP_PLATE_T + 1, align=(Align.CENTER, Align.CENTER, Align.MAX))  # shaft boss
+def deck(x0: float, x1: float, half_y: float, hole_x: float) -> Part:
+    """Plate under the guide blocks (top at z = 0); the gripper motor screws to its underside and the
+    pinion hub passes through the centre hole at x = hole_x."""
+    plate = Pos(x0, -half_y, -DECK_T) * Box(x1 - x0, 2 * half_y, DECK_T, align=(Align.MIN, Align.MIN, Align.MIN))
+    plate -= Pos(hole_x, 0, 0) * Cylinder(8.0, 2 * DECK_T + 1)
     for dx in (-MOTOR_HOLE_PITCH / 2, MOTOR_HOLE_PITCH / 2):
-        plate -= Pos(dx, 0, 0) * Cylinder(MOTOR_HOLE_D / 2, GRIP_PLATE_T + 1,
-                                           align=(Align.CENTER, Align.CENTER, Align.MAX))
+        plate -= Pos(hole_x + dx, 0, 0) * Cylinder(MOTOR_HOLE_D / 2, 2 * DECK_T + 1)
     return plate
 
 
 def rack_stop() -> Part:
-    """Block bolted on the rack; hits a guide block at the end of travel."""
-    return Box(8, RACK_DEPTH + 4, GEAR_FACE + 2 * WALL, align=(Align.MIN, Align.MAX, Align.CENTER))
+    """Block bolted to the rack back face (local -Y side, x 0..8). At full open it hits the end face of a
+    guide block. Local frame = rack frame: back face at y = -(1.25m + RACK_BASE)."""
+    back = -(1.25 * MODULE + RACK_BASE)
+    return Pos(0, back, 0) * Box(8, 6, GEAR_FACE, align=(Align.MIN, Align.MAX, Align.MIN))
