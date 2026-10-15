@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from build123d import Align, Box, Cylinder, Part, Pos, Rot
 
-from params import ARM_T, BOX, MOTOR_HOLE_D, MOTOR_HOLE_PITCH, PAD_T, PAD_Z_MAX, PAD_Z_MIN, RAIL_SECTION
+from params import ARM_T, BOX, GEAR_FACE, MODULE, MOTOR_HOLE_D, MOTOR_HOLE_PITCH, PAD_T, PAD_Z_MAX, PAD_Z_MIN
+from parts.gears import RACK_BASE
 
 CLEAR = 0.3
 WALL = 3.0
@@ -12,18 +13,21 @@ ARM_Z_MIN = PAD_Z_MIN - 10
 ARM_Z_MAX = PAD_Z_MAX + 10
 
 
-def slider() -> Part:
-    """U channel riding on the square rail (rail along local X); the rack bolts to its top."""
-    outer = RAIL_SECTION + 2 * (CLEAR + WALL)
-    s = Box(30, outer, outer, align=(Align.MIN, Align.CENTER, Align.CENTER))
-    s -= Box(32, RAIL_SECTION + 2 * CLEAR, RAIL_SECTION + 2 * CLEAR, align=(Align.MIN, Align.CENTER, Align.CENTER))
-    return s - Pos(-1, 0, -outer / 2) * Box(32, RAIL_SECTION, WALL + CLEAR, align=(Align.MIN, Align.CENTER, Align.MIN))
+RACK_DEPTH = 2.25 * MODULE + RACK_BASE  # tooth tip to back face
+
+
+def guide_block() -> Part:
+    """Fixed to the frame; the rack (along local X) slides through its slot. Teeth side (+Y) stays open
+    so the pinion can mesh."""
+    slot_y = RACK_DEPTH + 2 * CLEAR
+    slot_z = GEAR_FACE + 2 * CLEAR
+    block = Box(20, slot_y + WALL, slot_z + 2 * WALL, align=(Align.MIN, Align.MAX, Align.CENTER))
+    return block - Pos(-1, 0.01, 0) * Box(22, slot_y, slot_z, align=(Align.MIN, Align.MAX, Align.CENTER))
 
 
 def arm(length: float) -> Part:
     """Vertical plate in the XZ plane (thickness along Y), x 0..length, z ARM_Z_MIN..ARM_Z_MAX."""
-    return Box(length, ARM_T, ARM_Z_MAX - ARM_Z_MIN, align=(Align.MIN, Align.CENTER, Align.MIN)).moved(
-        Pos(0, 0, ARM_Z_MIN).location)
+    return Pos(0, 0, ARM_Z_MIN) * Box(length, ARM_T, ARM_Z_MAX - ARM_Z_MIN, align=(Align.MIN, Align.CENTER, Align.MIN))
 
 
 def pad() -> Part:
@@ -45,9 +49,6 @@ def grip_motor_mount() -> Part:
     return plate
 
 
-def stopper() -> Part:
-    """Block clamped to the rail; the slider hits it at the stroke ends."""
-    outer = RAIL_SECTION + 2 * (CLEAR + WALL)
-    s = Box(10, outer, outer, align=(Align.MIN, Align.CENTER, Align.CENTER))
-    return s - Box(12, RAIL_SECTION + 2 * CLEAR, RAIL_SECTION + 2 * CLEAR, align=(Align.MIN, Align.CENTER, Align.CENTER))
-
+def rack_stop() -> Part:
+    """Block bolted on the rack; hits a guide block at the end of travel."""
+    return Box(8, RACK_DEPTH + 4, GEAR_FACE + 2 * WALL, align=(Align.MIN, Align.MAX, Align.CENTER))

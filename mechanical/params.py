@@ -2,7 +2,7 @@
 +X forward, +Y left, +Z up. Values marked (measure) must be checked on the real part."""
 
 # frame (20mm aluminium extrusion)
-FRAME_W = 300.0          # along Y
+FRAME_W = 280.0          # along Y (sonar cans included the closed width stays <= 320)
 FRAME_D = 250.0          # along X
 EXTRUSION = 20.0
 FRAME_Z = 30.0           # underside of the extrusions above the floor
@@ -38,8 +38,7 @@ ARM_T = 6.0
 PAD_Z_MIN = 30.0
 PAD_Z_MAX = 120.0
 PAD_T = 5.0              # pad incl. rubber
-RAIL_SECTION = 10.0      # square aluminium bar for the rack slides
-RAIL_Z = 135.0           # rail centre height (above the frame, below box top)
+RACK_Z = 140.0           # rack / pinion bottom face; above the arm plates so racks pass over the far arm
 
 # ultrasonic HC-SR04
 SONAR_Z = 45.0
