@@ -39,6 +39,7 @@ mod app {
             pwm_input::{Qei, QeiExt, QeiOptions},
         },
         usb::{Peripheral, UsbBus, UsbBusType},
+        watchdog::IndependentWatchdog,
     };
     use usb_device::{bus::UsbBusAllocator, prelude::*};
     use usbd_serial::{SerialPort, USB_CLASS_CDC};
@@ -161,6 +162,11 @@ mod app {
             .device_class(USB_CLASS_CDC)
             .build();
 
+        // independent watchdog: if the control loop stops (hang, panic, fault) the MCU resets within
+        // 100ms; after reset the PWM pins float and the DRV8871 input pull-downs let the motors coast
+        let mut iwdg = IndependentWatchdog::new(dp.IWDG);
+        iwdg.start(100.millis());
+
         defmt::info!("init done");
         (
             Shared { usb: Usb { dev, serial }, latest_cmd: None, grip_quad: QuadDecoder::default(), sonar_mm: [0; 4] },
@@ -178,6 +184,7 @@ mod app {
                     adc,
                     vbat,
                     led,
+                    iwdg,
                     controller: Controller::new(DEFAULT_GRIPPER),
                 },
                 sonar_trigger: SonarTrigger { front: trig_front, rear: trig_rear },
@@ -295,6 +302,7 @@ mod app {
         adc: Adc<ADC1>,
         vbat: PA4<Analog>,
         led: PC13<Output<PushPull>>,
+        iwdg: IndependentWatchdog,
         controller: Controller,
     }
     impl RticAsyncTask for Control {
@@ -308,6 +316,7 @@ mod app {
             loop {
                 next += 10.millis();
                 Mono::delay_until(next).await;
+                self.iwdg.feed();
                 tick = tick.wrapping_add(1);
 
                 let (l, r) = (self.qei_left.count(), self.qei_right.count());
