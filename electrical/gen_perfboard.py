@@ -10,7 +10,6 @@ import hashlib
 from netlist import BLUEPILL_ROW_A, BLUEPILL_ROW_B, BOARD_HOLES, PARTS, PLACEMENT, nets, pin_hole
 from route import BARE, WIRE, Routing, route
 
-HEAVY = ("VBAT", "GND")
 
 
 def _hole(h: tuple[int, int]) -> str:
@@ -45,12 +44,11 @@ def _placement_section() -> list[str]:
 
 def _wiring_section() -> list[str]:
     lines = ["## 結線表", "",
-             "ネットごとに、近い順につなぐ。太線は AWG18、細線は AWG26 またはすずめっき線。", "",
-             "| ✓ | ネット | 始点 | 終点 | 線材 |", "|---|---|---|---|---|"]
+             "ネットごとに、近い順につなぐ。", "",
+             "| ✓ | ネット | 始点 | 終点 |", "|---|---|---|---|"]
     for net, a, b in wire_list():
-        gauge = "太線" if net in HEAVY else "細線"
         lines.append(f"| ☐ | {net} | {a[0]}.{a[1]} @ {_hole(pin_hole(*a))} | "
-                     f"{b[0]}.{b[1]} @ {_hole(pin_hole(*b))} | {gauge} |")
+                     f"{b[0]}.{b[1]} @ {_hole(pin_hole(*b))} |")
     return lines + [""]
 
 
@@ -102,26 +100,24 @@ def _segments(holes: tuple[tuple[int, int], ...]) -> list[tuple[int, int]]:
 
 
 def _routing_section(r: Routing) -> list[str]:
-    heavy = [j for j in r.jumpers if j.gauge == "AWG18"]
-    thin = [j for j in r.jumpers if j.gauge != "AWG18"]
+    thin = list(r.jumpers)
     bare = sorted((t for t in r.traces if t.layer == BARE), key=lambda t: (t.net, t.holes))
     wire = sorted((t for t in r.traces if t.layer == WIRE), key=lambda t: (t.net, t.holes))
     lines = ["## 配線経路", "",
-             "作業順:(1)部品面の太線、(2)はんだ面の裸配線(すずめっき線を穴に沿って這わせ、通る穴ごとにはんだ付け)、"
-             "(3)はんだ面の被覆線(耐熱の被覆線、たとえば AWG26〜30 の ETFE ラッピング線を、裸配線の上から穴の列に沿って"
+             "配線はすべてはんだ面で行う。電源(VBAT、GND)も基板上の電流は小さい(降圧モジュールの入力と電圧測定だけ)"
+             "ので、信号と同じ線で引く。作業順:(1)はんだ面の裸配線(すずめっき線を穴に沿って這わせ、通る穴ごとにはんだ付け)、"
+             "(2)はんだ面の被覆線(耐熱の被覆線、たとえば AWG26〜30 の ETFE ラッピング線を、裸配線の上から穴の列に沿って"
              "這わせる。はんだ付けは両端だけで、端はピンのはんだの上か、裸配線の上に付ける。裸配線や他の被覆線とは"
              "直角に交差してよいが、途中で他のピンのはんだの上は通さない)。ポリウレタン線ははんだごての熱で被覆が溶けるので、"
              "交差に使わない。図は `images/perfboard_top.png`(部品面)、`images/perfboard_bottom.png`(はんだ面の裸配線)、"
              "`images/perfboard_wires.png`(はんだ面の被覆線)。はんだ面の図は左右反転。", "",
-             f"裸配線 {len(bare)} 本、被覆線 {len(wire)} 本、太線 {len(heavy)} 本。", "",
-             "### (1) 部品面の太線(AWG18、端子間を数珠つなぎ)", "", "| ✓ | ネット | 始点 | 終点 |", "|---|---|---|---|"]
-    lines += [f"| ☐ | {j.net} | {_hole(j.a)} | {_hole(j.b)} |" for j in heavy]
-    lines += ["", "### (2) はんだ面の裸配線", "", "| ✓ | ネット | 経路(角の穴) |", "|---|---|---|"]
+             f"裸配線 {len(bare)} 本、被覆線 {len(wire)} 本。", "",
+             "### (1) はんだ面の裸配線", "", "| ✓ | ネット | 経路(角の穴) |", "|---|---|---|"]
     lines += [f"| ☐ | {t.net} | {' → '.join(_hole(h) for h in _segments(t.holes))} |" for t in bare]
-    lines += ["", "### (3) はんだ面の被覆線", "", "| ✓ | ネット | 経路(角の穴、はんだ付けは両端だけ) |", "|---|---|---|"]
+    lines += ["", "### (2) はんだ面の被覆線", "", "| ✓ | ネット | 経路(角の穴、はんだ付けは両端だけ) |", "|---|---|---|"]
     lines += [f"| ☐ | {t.net} | {' → '.join(_hole(h) for h in _segments(t.holes))} |" for t in wire]
     if thin:
-        lines += ["", "### (4) 直結の被覆線(格子に乗らなかったもの)", "", "| ✓ | ネット | 始点 | 終点 |", "|---|---|---|---|"]
+        lines += ["", "### (3) 直結の被覆線(格子に乗らなかったもの)", "", "| ✓ | ネット | 始点 | 終点 |", "|---|---|---|---|"]
         lines += [f"| ☐ | {j.net} | {_hole(j.a)} | {_hole(j.b)} |" for j in sorted(thin, key=lambda j: (j.net, j.a))]
     return lines + [""]
 
@@ -154,8 +150,8 @@ def _svg(r: Routing, view: str) -> str:
     out = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 {w} {h}" '
            'font-family="Noto Sans CJK JP, IPAGothic, DejaVu Sans, sans-serif">',
            f'<rect width="{w}" height="{h}" fill="white"/>']
-    title = {"top": "部品面(部品と太線)", "bare": "はんだ面 (2) 裸配線(左右反転:実物を裏返した向き)",
-             "wire": "はんだ面 (3) 被覆線(左右反転、灰色は先に付けた裸配線)"}[view] + "  上=ロボット前方"
+    title = {"top": "部品面(部品の配置)", "bare": "はんだ面 (1) 裸配線(左右反転:実物を裏返した向き)",
+             "wire": "はんだ面 (2) 被覆線(左右反転、灰色は先に付けた裸配線)"}[view] + "  上=ロボット前方"
     out.append(f'<text x="{MARGIN}" y="34" font-size="22" font-weight="bold">{title}</text>')
     x0, y0 = xy((0, 0))
     x1, y1 = xy((cols - 1, rows - 1))
@@ -228,7 +224,7 @@ def _svg(r: Routing, view: str) -> str:
     if not mirror:
         for j in r.jumpers:
             (ax, ay), (bx, by) = xy(j.a), xy(j.b)
-            width = 6 if j.gauge == "AWG18" else 2.2
+            width = 2.2
             out.append(f'<line x1="{ax}" y1="{ay}" x2="{bx}" y2="{by}" stroke="{_color(j.net)}" '
                        f'stroke-width="{width}" stroke-opacity="0.85" stroke-linecap="round"/>')
     # Bluepill pin names

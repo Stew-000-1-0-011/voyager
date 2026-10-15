@@ -1,8 +1,8 @@
 """Perfboard routing, all signal wiring on the solder side in two passes.
 
-- VBAT / GND power: AWG18 wires on the component side, daisy-chained between the power terminals
-  (minimum spanning tree from J_PWR) so no terminal carries more than a few wires.
-- Everything else: grid routing with negotiated congestion (PathFinder), in two kinds of wire:
+- The motor drivers take battery power straight from the harness, so the board only carries small
+  currents (buck module input, battery sense) and every net, VBAT and GND included, is routed alike.
+- Grid routing with negotiated congestion (PathFinder), in two kinds of wire:
     BARE  bare tinned wire laid along the holes, soldered at every hole it runs over;
     WIRE  insulated wire laid along the holes on top of the bare wiring, so it may cross bare traces.
           It is soldered only at its two ends: onto a pin's joint, or onto a bare trace ("via").
@@ -24,9 +24,6 @@ BARE = "bare"
 WIRE = "wire"
 _LAYERS = (BARE, WIRE)
 
-HEAVY_NETS = ("VBAT", "GND")
-POWER_ROOT = "J_PWR"
-POWER_REFS = ("J_PWR", "J_BUCK", "C_BULK")
 
 STEP_COST = {BARE: 1.0, WIRE: 1.4}  # prefer bare solder-side traces
 TURN_COST = 1.0
@@ -64,27 +61,6 @@ def ground_ring() -> list[Hole]:
     path = [(c, 0) for c in range(cols)] + [(cols - 1, r) for r in range(1, rows)]
     path += [(c, rows - 1) for c in range(cols - 2, -1, -1)] + [(0, r) for r in range(rows - 2, 0, -1)]
     return path
-
-
-# ---------------------------------------------------------------------------
-# power wiring
-
-def _power_chain() -> list[Jumper]:
-    """AWG18 minimum spanning tree per heavy net, grown from the J_PWR terminal."""
-    out: list[Jumper] = []
-    for net in HEAVY_NETS:
-        pins = [pin_hole(p.ref, pin) for p in PARTS if p.ref in POWER_REFS
-                for pin, n in p.pins.items() if n == net]
-        root = next(pin_hole(POWER_ROOT, pin) for pin, n in
-                    next(p for p in PARTS if p.ref == POWER_ROOT).pins.items() if n == net)
-        tree, rest = [root], [h for h in pins if h != root]
-        while rest:
-            a, b = min(((t, r) for t in tree for r in rest),
-                       key=lambda tr: (abs(tr[0][0] - tr[1][0]) + abs(tr[0][1] - tr[1][1]), tr))
-            out.append(Jumper(net, a, b, "AWG18"))
-            tree.append(b)
-            rest.remove(b)
-    return out
 
 
 # ---------------------------------------------------------------------------
@@ -243,7 +219,6 @@ def _usage(segments, pins: set[Hole]) -> set[tuple]:
 
 def route() -> Routing:
     board = _Board()
-    power = _power_chain()
     all_nets = nets()
     pins = {n: {pin_hole(ref, pin) for ref, pin in conns} for n, conns in all_nets.items()}
     bridged = {n: {pin_hole(ref, pin) for ref, pin in g} for n, g in MODULE_BRIDGES.items()}
@@ -257,7 +232,7 @@ def route() -> Routing:
     fixed = {"GND": [(BARE, ring)]}
 
     def roots(net: str) -> set[Hole]:
-        out = {h for j in power if j.net == net for h in (j.a, j.b)} if net in HEAVY_NETS else {min(pins[net])}
+        out = {min(pins[net])}
         if net in bridged and net != "GND":
             out = set(bridged[net])
         if net == "GND":
@@ -301,7 +276,7 @@ def route() -> Routing:
     # commit: nets keep their negotiated route when it is still free, otherwise they are rerouted with the
     # already committed wires as walls; nets that still fail are moved to the front and the commit retried
     def commit(seq: list[str]) -> tuple[Routing, list[str]]:
-        res = Routing(jumpers=list(power))
+        res = Routing()
         taken: dict[tuple, str] = {}
         failed: list[str] = []
         for net in seq:
@@ -339,8 +314,8 @@ def route() -> Routing:
         cand, failed = commit(seq)
         if len(cand.jumpers) < len(best.jumpers):
             best = cand
-    STATS["fallback_wires"] = len(best.jumpers) - len(power)
+    STATS["fallback_wires"] = len(best.jumpers)
     return best
 
 
-__all__ = ["BARE", "WIRE", "HEAVY_NETS", "Trace", "Jumper", "Routing", "route", "PLACEMENT"]
+__all__ = ["BARE", "WIRE", "Trace", "Jumper", "Routing", "route", "PLACEMENT"]

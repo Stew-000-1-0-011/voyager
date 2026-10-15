@@ -1,7 +1,5 @@
-from collections import Counter
-
 from netlist import BOARD_HOLES, MODULE_BRIDGES, PARTS, nets, pin_hole
-from route import BARE, HEAVY_NETS, WIRE, route
+from route import BARE, WIRE, route
 
 R = route()
 PIN_OWNER = {pin_hole(p.ref, pin): net for p in PARTS for pin, net in p.pins.items()}
@@ -97,21 +95,7 @@ def test_traces_avoid_unconnected_pins():
 
 
 def test_no_point_to_point_signal_wires():
-    assert [j for j in R.jumpers if j.gauge != "AWG18"] == []
-
-
-def test_power_wires_reach_every_power_pin():
-    heavy_ends = {(j.net, h) for j in R.jumpers if j.gauge == "AWG18" for h in (j.a, j.b)}
-    for p in PARTS:
-        if p.ref in ("J_PWR", "J_BUCK", "C_BULK"):
-            for pin, net in p.pins.items():
-                if net in HEAVY_NETS:
-                    assert (net, pin_hole(p.ref, pin)) in heavy_ends, (p.ref, pin)
-
-
-def test_power_wires_daisy_chained():
-    per_hole = Counter(h for j in R.jumpers if j.gauge == "AWG18" for h in (j.a, j.b))
-    assert max(per_hole.values()) <= 3
+    assert R.jumpers == []
 
 
 def test_ground_ring_runs_around_the_perimeter():
