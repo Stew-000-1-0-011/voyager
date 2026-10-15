@@ -110,3 +110,15 @@ def test_power_wires_reach_every_power_pin():
 def test_power_wires_daisy_chained():
     per_hole = Counter(h for j in R.jumpers if j.gauge == "AWG18" for h in (j.a, j.b))
     assert max(per_hole.values()) <= 3
+
+
+def test_ground_ring_runs_around_the_perimeter():
+    cols, rows = BOARD_HOLES
+    perimeter = {(c, r) for c in range(cols) for r in range(rows) if c in (0, cols - 1) or r in (0, rows - 1)}
+    ring = {h for t in R.traces if t.net == "GND" and t.layer == BOTTOM for h in t.holes}
+    assert perimeter <= ring
+
+
+def test_bus_layout_keeps_wiring_short():
+    # 45 insulated wires before the GND ring; dropping J_SPARE would save two more
+    assert len([t for t in R.traces if t.layer == TOP]) <= 34

@@ -35,7 +35,7 @@ def test_5v_signals_only_on_ft_pins():
         assert mcu and all(p in FT_PINS for p in mcu)
     for p in PARTS:
         if p.ref.startswith("J_ENC"):
-            assert p.pins["1"] == "+3V3"
+            assert "+3V3" in p.pins.values()
             assert "+5V" not in p.pins.values()
 
 

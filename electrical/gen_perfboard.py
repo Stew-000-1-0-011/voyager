@@ -65,6 +65,18 @@ def _orientation_section() -> list[str]:
     ]
 
 
+def _cable_section() -> list[str]:
+    """Connector pin order as soldered on the board: crimp the cable housings to match."""
+    lines = ["## コネクタのピン順(ケーブル製作用)", "",
+             "基板側のピン1(□)は必ず GND で、基板の外周(GND の母線)側にある。ケーブルはこの順に圧着する。", "",
+             "| コネクタ | 1 | 2 | 3 | 4 |", "|---|---|---|---|---|"]
+    for p in sorted(PARTS, key=lambda p: p.ref):
+        if p.ref.startswith(("J_ENC", "J_US", "J_DRV", "J_VM", "J_PWR", "J_BUCK", "J_UART", "J_I2C")):
+            cells = [p.pins.get(str(i), "") for i in range(1, 5)]
+            lines.append(f"| {p.ref}({p.value}) | " + " | ".join(cells) + " |")
+    return lines + [""]
+
+
 def _check_section() -> list[str]:
     return [
         "## 導通確認", "",
@@ -225,7 +237,7 @@ def generate_md(path: Path, r: Routing | None = None) -> None:
     r = r or route()
     lines = ["# ユニバーサル基板 配置・結線", "",
              "このファイルは `gen_perfboard.py` が `netlist.py` から生成する。手で編集しない。", ""]
-    lines += (_orientation_section() + _placement_section() + _routing_section(r)
+    lines += (_orientation_section() + _cable_section() + _placement_section() + _routing_section(r)
               + _wiring_section() + _check_section())
     path.write_text("\n".join(lines))
 

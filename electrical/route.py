@@ -61,25 +61,17 @@ class Routing:
 # ---------------------------------------------------------------------------
 # geometry helpers
 
-def _inward(ref: str) -> tuple[int, int]:
-    """Direction from a board-edge connector toward the board interior (0, 0 if not on an edge)."""
-    cols, rows = BOARD_HOLES
-    holes = [pin_hole(ref, pin) for pin in next(p for p in PARTS if p.ref == ref).pins]
-    if all(r == 0 for _, r in holes):
-        return (0, 1)
-    if all(r == rows - 1 for _, r in holes):
-        return (0, -1)
-    if all(c == 0 for c, _ in holes):
-        return (1, 0)
-    if all(c == cols - 1 for c, _ in holes):
-        return (-1, 0)
-    return (0, 0)
-
-
 def _line(a: Hole, b: Hole) -> list[Hole]:
     (c1, r1), (c2, r2) = a, b
     n = max(abs(c2 - c1), abs(r2 - r1))
     return [(c1 + (c2 - c1) * k // n, r1 + (r2 - r1) * k // n) for k in range(n + 1)] if n else [a]
+
+
+def _widen(run: list[Hole], half: int) -> set[Hole]:
+    """Holes within `half` holes of a straight pin run, measured across the run."""
+    (c1, r1), (c2, r2) = run[0], run[-1]
+    across = (0, 1) if r1 == r2 else (1, 0)
+    return {(c + across[0] * k, r + across[1] * k) for c, r in run for k in range(-half, half + 1)}
 
 
 def top_keepout() -> set[Hole]:
@@ -89,26 +81,25 @@ def top_keepout() -> set[Hole]:
     out: set[Hole] = set()
     for p in PARTS:
         pins = [pin_hole(p.ref, pin) for pin in sorted(p.pins, key=int)]
+        run = _line(pins[0], pins[-1])
         if p.ref.startswith(("R_", "D_")) or p.ref == "C_DIV":
-            out.update(_line(pins[0], pins[-1]))       # axial / disc body between the leads
+            out.update(run)                                   # axial / disc body between the leads
         elif p.ref == "C_BULK":
             c, r = pins[0]
             out.update((c + dc, r + dr) for dc in range(-1, 3) for dr in range(-1, 2))  # 8mm can
         elif p.ref.startswith(("J_PWR", "J_VM_")):
-            dc, dr = _inward(p.ref)
-            run = _line(pins[0], pins[-1])
-            ext = [(run[0][0] - (1 - abs(dc)), run[0][1] - (1 - abs(dr))),
-                   (run[-1][0] + (1 - abs(dc)), run[-1][1] + (1 - abs(dr)))]
-            for c, r in run + ext:
-                out.update((c + dc * k, r + dr * k) for k in range(0, 4))  # terminal block ~10mm deep
+            out.update(_widen(run, 2))                        # terminal block ~10mm wide
         elif p.ref.startswith(("J_DRV", "J_ENC", "J_US", "J_BUCK", "J_UART", "J_I2C")):
-            dc, dr = _inward(p.ref)
-            run = _line(pins[0], pins[-1])
-            ext = [(run[0][0] - (1 - abs(dc)), run[0][1] - (1 - abs(dr))),
-                   (run[-1][0] + (1 - abs(dc)), run[-1][1] + (1 - abs(dr)))]
-            for c, r in run + ext:
-                out.update((c + dc * k, r + dr * k) for k in range(0, 2))  # XH housing
+            out.update(_widen(run, 1))                        # XH housing
     return {(c, r) for c, r in out if 0 <= c < cols and 0 <= r < rows}
+
+
+def ground_ring() -> list[Hole]:
+    """Bare GND wire around the perimeter on the solder side (pin 1 of every cable connector is on it)."""
+    cols, rows = BOARD_HOLES
+    path = [(c, 0) for c in range(cols)] + [(cols - 1, r) for r in range(1, rows)]
+    path += [(c, rows - 1) for c in range(cols - 2, -1, -1)] + [(0, r) for r in range(rows - 2, 0, -1)]
+    return path
 
 
 # ---------------------------------------------------------------------------
@@ -146,6 +137,7 @@ class _Board:
             for pin, net in p.pins.items():
                 self.pin_owner[pin_hole(p.ref, pin)] = net
         self.keepout = top_keepout() - set(self.pin_owner)
+        self.ring = set(ground_ring())
 
     def inside(self, h: Hole) -> bool:
         return 0 <= h[0] < self.cols and 0 <= h[1] < self.rows
@@ -155,6 +147,8 @@ class _Board:
         owner = self.pin_owner.get(h)
         if owner is not None and owner != net:
             return False
+        if layer == BOTTOM and h in self.ring and net != "GND":
+            return False  # the GND ring wire runs through every perimeter hole
         if layer == TOP:
             if h in self.keepout:
                 return False
@@ -293,10 +287,14 @@ def route() -> Routing:
     pins = {n: {pin_hole(ref, pin) for ref, pin in conns} for n, conns in all_nets.items()}
     order = sorted(all_nets, key=lambda n: (len(all_nets[n]), n))
 
+    ring = ground_ring()
+    fixed = {"GND": [(BOTTOM, ring)]}
+
     def roots(net: str) -> set[Hole]:
-        if net in HEAVY_NETS:  # already joined by the AWG18 chain
-            return {h for j in power if j.net == net for h in (j.a, j.b)}
-        return {min(pins[net])}
+        out = {h for j in power if j.net == net for h in (j.a, j.b)} if net in HEAVY_NETS else {min(pins[net])}
+        if net == "GND":
+            out |= set(ring)
+        return out
 
     history: dict[tuple, float] = {}
     usage: dict[str, set[tuple]] = {n: set() for n in order}
@@ -318,6 +316,7 @@ def route() -> Routing:
                 return history.get(key, 0.0) + present * occ.get(key, 0)
 
             segs, _ = _grow(board, net, roots(net), pins[net], cost_of)
+            segs = fixed.get(net, []) + segs
             routed[net] = segs
             usage[net] = _usage(segs, pins[net])
         count: dict[tuple, int] = {}
@@ -346,6 +345,7 @@ def route() -> Routing:
                     return 0.0 if taken.get(key, net) == net else float("inf")
 
                 segs, left = _grow(board, net, roots(net), pins[net], hard)
+                segs = fixed.get(net, []) + segs
             for c in _usage(segs, pins[net]):
                 taken[c] = net
             res.traces += [Trace(net, tuple(h), layer) for layer, h in segs]

@@ -73,20 +73,21 @@ def _build_parts() -> list[Part]:
     parts = [
         Part("J_BP_A", "Bluepill row A", _CONN.format(20), socket, _row(BLUEPILL_ROW_A)),
         Part("J_BP_B", "Bluepill row B", _CONN.format(20), socket, _row(BLUEPILL_ROW_B)),
-        _conn("J_PWR", "VBAT in", ["VBAT", "GND"], _TB2),
+        _conn("J_PWR", "VBAT in", ["GND", "VBAT"], _TB2),
     ]
     for m in ("L", "R", "G"):
-        parts.append(_conn(f"J_VM_{m}", "Driver VM", ["VBAT", "GND"], _TB2))
+        parts.append(_conn(f"J_VM_{m}", "Driver VM", ["GND", "VBAT"], _TB2))
     for m in ("L", "R", "G"):
-        parts.append(_conn(f"J_DRV_{m}", "Driver IN", [f"{m}_IN1", f"{m}_IN2", "GND"], _XH.format(n=3)))
+        parts.append(_conn(f"J_DRV_{m}", "Driver IN", ["GND", f"{m}_IN1", f"{m}_IN2"], _XH.format(n=3)))
     for m in ("L", "R", "G"):
-        parts.append(_conn(f"J_ENC_{m}", "Encoder", ["+3V3", "GND", f"ENC_{m}_A", f"ENC_{m}_B"], _XH.format(n=4)))
+        parts.append(_conn(f"J_ENC_{m}", "Encoder", ["GND", "+3V3", f"ENC_{m}_A", f"ENC_{m}_B"], _XH.format(n=4)))
     for pos in ("LF", "RF", "LR", "RR"):
         trig = "US_TRIG_F" if pos.endswith("F") else "US_TRIG_R"
-        parts.append(_conn(f"J_US_{pos}", "HC-SR04", ["+5V", trig, f"US_ECHO_{pos}_RAW", "GND"], _XH.format(n=4)))
+        parts.append(_conn(f"J_US_{pos}", "HC-SR04", ["GND", "+5V", trig, f"US_ECHO_{pos}_RAW"], _XH.format(n=4)))
         parts.append(_two(f"R_ECHO_{pos}", "1k", "Device:R", _R, f"US_ECHO_{pos}_RAW", f"US_ECHO_{pos}"))
     parts += [
-        _conn("J_BUCK", "Buck module", ["VBAT", "GND", "+5V", "GND"], _XH.format(n=4)),
+        # MP1584 IN- and OUT- are the same node on the module: one GND wire
+        _conn("J_BUCK", "Buck module", ["GND", "VBAT", "+5V"], _XH.format(n=3)),
         _two("D_5V", "1N5819", "Device:D_Schottky", "Diode_THT:D_DO-41_SOD81_P10.16mm_Horizontal",
              "+5V_BP", "+5V"),
         _two("R_DIV_H", "47k", "Device:R", _R, "VBAT", "VBAT_SENSE"),
@@ -96,8 +97,8 @@ def _build_parts() -> list[Part]:
         _two("C_BULK", "470u 25V", "Device:C_Polarized", "Capacitor_THT:CP_Radial_D8.0mm_P3.50mm",
              "VBAT", "GND"),
         _two("R_USB", "1k8 DNP", "Device:R", _R, "USB_DP", "+3V3"),
-        _conn("J_UART", "UART", ["+3V3", "UART_TX", "UART_RX", "GND"], _XH.format(n=4)),
-        _conn("J_I2C", "I2C", ["+3V3", "I2C_SCL", "I2C_SDA", "GND"], _XH.format(n=4)),
+        _conn("J_UART", "UART", ["GND", "+3V3", "UART_TX", "UART_RX"], _XH.format(n=4)),
+        _conn("J_I2C", "I2C", ["GND", "+3V3", "I2C_SCL", "I2C_SDA"], _XH.format(n=4)),
         _conn("J_SPARE", "Spare GPIO", ["SPARE_PA5", "SPARE_PA10", "SPARE_PA15", "SPARE_PB5", "+3V3", "GND"],
               "Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Vertical"),
     ]
@@ -123,39 +124,41 @@ def nets() -> dict[str, list[tuple[str, str]]]:
 BOARD_HOLES = (44, 36)  # ~112 x 91mm, fits a 115 x 95mm board
 
 PLACEMENT: dict[str, tuple[int, int, int]] = {
+    # Cable connectors stand at right angles to the board edge with pin 1 (always GND) on the perimeter,
+    # where a bare ring wire on the solder side joins them all.
     # Bluepill: pin 1 toward the front, USB toward the rear edge
     "J_BP_B": (19, 8, 90),
     "J_BP_A": (25, 8, 90),
-    # front edge: drivers, driver power, gripper encoder
-    "J_VM_L": (1, 0, 0),
-    "J_DRV_L": (7, 0, 0),
-    "J_ENC_G": (12, 0, 0),
-    "J_DRV_G": (18, 0, 0),
-    "J_VM_G": (23, 0, 0),
-    "J_DRV_R": (29, 0, 0),
-    "J_VM_R": (38, 0, 0),
-    # left / right edges: wheel encoders and ultrasonic sensors
-    "J_US_LF": (0, 4, 90),
-    "J_ENC_L": (0, 14, 90),
-    "J_US_LR": (0, 26, 90),
-    "J_US_RF": (43, 4, 90),
-    "J_ENC_R": (43, 14, 90),
-    "J_US_RR": (43, 26, 90),
-    # rear edge: power in, buck module, expansion
-    "J_PWR": (2, 35, 0),
-    "J_BUCK": (8, 35, 0),
-    "J_UART": (28, 35, 0),
-    "J_I2C": (35, 35, 0),
+    # front edge (pins run toward the rear): drivers, driver power, gripper encoder
+    "J_VM_L": (1, 0, 90),
+    "J_DRV_L": (6, 0, 90),
+    "J_ENC_G": (10, 0, 90),
+    "J_DRV_G": (14, 0, 90),
+    "J_VM_G": (24, 0, 90),
+    "J_DRV_R": (30, 0, 90),
+    "J_VM_R": (38, 0, 90),
+    # left / right edges (pins run inward): wheel encoders and ultrasonic sensors
+    "J_US_LF": (0, 4, 0),
+    "J_ENC_L": (0, 14, 0),
+    "J_US_LR": (0, 26, 0),
+    "J_US_RF": (43, 4, 180),
+    "J_ENC_R": (43, 14, 180),
+    "J_US_RR": (43, 26, 180),
+    # rear edge (pins run toward the front): power in, buck module, expansion
+    "J_PWR": (2, 35, 270),
+    "J_BUCK": (6, 35, 270),
+    "J_UART": (28, 35, 270),
+    "J_I2C": (35, 35, 270),
     # interior
-    "C_BULK": (2, 32, 0),
-    "R_DIV_H": (6, 31, 0),
-    "R_DIV_L": (10, 29, 180),
-    "C_DIV": (12, 27, 0),
-    "D_5V": (13, 33, 0),
-    "R_ECHO_LF": (3, 10, 0),
-    "R_ECHO_LR": (3, 23, 0),
-    "R_ECHO_RF": (40, 10, 180),
-    "R_ECHO_RR": (40, 23, 180),
+    "C_BULK": (4, 30, 0),
+    "R_DIV_H": (8, 31, 0),
+    "R_DIV_L": (12, 29, 180),
+    "C_DIV": (13, 26, 0),
+    "D_5V": (11, 33, 0),
+    "R_ECHO_LF": (5, 7, 0),
+    "R_ECHO_LR": (5, 29, 0),
+    "R_ECHO_RF": (38, 7, 180),
+    "R_ECHO_RR": (38, 29, 180),
     "R_USB": (28, 30, 0),
     "J_SPARE": (13, 13, 90),
 }
