@@ -4,8 +4,9 @@ pub use crate::protocol::{GripCmd, GripState};
 
 #[derive(Clone, Copy, Debug)]
 pub struct GripperConfig {
-    /// +1 if the encoder counts up while closing, -1 otherwise; also flips the motor output.
-    pub dir: i8,
+    /// +1 if the encoder counts up while closing, -1 otherwise. Motor direction is fixed by wiring
+    /// (swap the two motor wires if Close opens).
+    pub enc_dir: i8,
     pub open_cmd: i16,
     pub close_cmd: i16,
     pub hold_cmd: i16,
@@ -20,7 +21,7 @@ pub struct GripperConfig {
 
 /// 63 counts/mm ≈ 11 pulses × 4 × ~90:1 gearbox / 62.8mm pinion circumference (measure, see docs/tuning.md).
 pub const DEFAULT_GRIPPER: GripperConfig = GripperConfig {
-    dir: 1,
+    enc_dir: 1,
     open_cmd: -600,
     close_cmd: 500,
     hold_cmd: 200,
@@ -62,7 +63,7 @@ impl Gripper {
         self.ticks = 0;
     }
 
-    /// Motor command for this 10ms tick (positive = closing direction before `dir`).
+    /// Motor command for this 10ms tick (positive = closing).
     pub fn update(&mut self, cmd: GripCmd, enc: i32, cfg: &GripperConfig) -> i16 {
         use GripState::*;
         match cmd {
@@ -96,13 +97,12 @@ impl Gripper {
             }
         }
 
-        let out = match self.state {
+        match self.state {
             Opening => cfg.open_cmd,
             Closing => cfg.close_cmd,
             Holding => cfg.hold_cmd,
             _ => 0,
-        };
-        out * cfg.dir as i16
+        }
     }
 
     /// Boxes held (0..=2); 0 unless holding.
@@ -110,7 +110,7 @@ impl Gripper {
         if self.state != GripState::Holding {
             return 0;
         }
-        let d = (enc - self.home) * cfg.dir as i32;
+        let d = (enc - self.home) * cfg.enc_dir as i32;
         if d <= cfg.two_box_max {
             2
         } else if d <= cfg.one_box_max {
@@ -211,13 +211,14 @@ mod tests {
 
     #[test]
     fn reversed_encoder_with_dir_flag() {
-        let cfg = GripperConfig { dir: -1, ..DEFAULT_GRIPPER };
+        // motor wiring already fixed (Close closes); only the encoder counts down while closing
+        let cfg = GripperConfig { enc_dir: -1, ..DEFAULT_GRIPPER };
         let mut g = Gripper::new();
-        assert_eq!(g.update(GripCmd::Open, 0, &cfg), 600);
+        assert_eq!(g.update(GripCmd::Open, 0, &cfg), -600);
         let g = closed_at(-63 * 50, &cfg);
         assert_eq!(g.state(), GripState::Holding);
         assert_eq!(g.box_count(-63 * 50, &cfg), 2);
         let mut g = g;
-        assert_eq!(g.update(GripCmd::Keep, -63 * 50, &cfg), -200);
+        assert_eq!(g.update(GripCmd::Keep, -63 * 50, &cfg), 200);
     }
 }

@@ -19,7 +19,7 @@
    - [ ] 前進でテレメトリの enc_left / enc_right が増える。減る場合はエンコーダの A と B を入れ替える。
 5. **把持モーター**
    - [ ] 閉じるボタン(既定は South)で閉じる向きに動く。逆ならモーターの線を入れ替える。
-   - [ ] 閉じる向きで enc_grip が増える。減る場合は `robot-core/src/gripper.rs` の `DEFAULT_GRIPPER.dir` を `-1` にする。
+   - [ ] 閉じる向きで enc_grip が増える。減る場合は把持エンコーダの A と B の線を入れ替える(または `robot-core/src/gripper.rs` の `DEFAULT_GRIPPER.enc_dir` を `-1` にする。モーターの向きには影響しない)。
    - [ ] 初回の閉じる操作では、先に開ききって原点を取り(状態 Opening → Open)、その後に閉じる。
 6. **非常停止**
    - [ ] 走行中に非常停止を押すと全モーターが止まり、`estop LATCHED` になる。
