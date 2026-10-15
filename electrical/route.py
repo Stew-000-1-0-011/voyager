@@ -149,11 +149,10 @@ class _Board:
             return False
         if layer == BOTTOM and h in self.ring and net != "GND":
             return False  # the GND ring wire runs through every perimeter hole
-        if layer == TOP:
-            if h in self.keepout:
-                return False
-            if owner == net and h not in targets:
-                return False  # cannot run over a lead; own pins are only end points
+        if layer == TOP and (h in self.keepout or owner is not None):
+            # a lead already fills a pin's hole: an insulated wire ends in a free hole next to it
+            # and is joined to the pin on the solder side
+            return False
         return True
 
 
@@ -171,7 +170,7 @@ def _grow(board: _Board, net: str, roots: set[Hole], pins: set[Hole], cost_of):
     cost_of(key) prices an occupancy key (see _key); inf means forbidden."""
     inf = float("inf")
     bottom_tree: set[Hole] = set(roots)
-    entries: set[Hole] = set(roots)  # holes where a top wire may start or end
+    entries: set[Hole] = {h for h in roots if h not in board.pin_owner}  # free holes where a top wire may end
     remaining = set(pins) - entries
     segments: list[tuple[str, list[Hole]]] = []
     while remaining:
@@ -210,8 +209,6 @@ def _grow(board: _Board, net: str, roots: set[Hole], pins: set[Hole], cost_of):
                         prev[key] = (layer, h, d)
                         tie += 1
                         heapq.heappush(heap, (ncost, tie, other, h, -1))
-            if layer == TOP and d != -1 and board.pin_owner.get(h) == net:
-                continue  # a top wire that reached one of this net's pins ends there
             for nd, (dc, dr) in enumerate(_DIRS):
                 n = (h[0] + dc, h[1] + dr)
                 if not board.inside(n) or not board.enterable(net, layer, n, remaining):
@@ -257,7 +254,6 @@ def _grow(board: _Board, net: str, roots: set[Hole], pins: set[Hole], cost_of):
             else:
                 entries.update((holes[0], holes[-1]))
         segments += new_segments
-        entries.add(found[1])
         bottom_tree.add(found[1])
         remaining -= bottom_tree | entries
     return segments, remaining

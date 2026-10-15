@@ -81,6 +81,14 @@ def test_top_wires_only_cross_never_overlap():
                 assert owner.setdefault(key, t.net) == t.net, (key, t.net, owner[key])
 
 
+def test_top_wires_never_end_in_a_pin_hole():
+    # a pin's hole is already filled by its lead or socket pin; the wire goes into a free hole beside it
+    for t in R.traces:
+        if t.layer == TOP:
+            assert t.holes[0] not in PIN_OWNER and t.holes[-1] not in PIN_OWNER, t.net
+            assert t.holes[0] not in BLUEPILL_HOLES and t.holes[-1] not in BLUEPILL_HOLES, t.net
+
+
 def test_top_wires_enter_holes_only_at_their_ends():
     # a wire may not pass over a lead sticking up through the board, nor under a component body
     blocked = top_keepout()
