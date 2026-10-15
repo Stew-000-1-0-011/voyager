@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 1つの Python 定義(`electrical/netlist.py`)から KiCad 8 の回路図とユニバーサル基板の結線表を生成し、ERC エラー 0、両者の結線の一致を自動で確認できるようにする。
+**Goal:** 1つの Python 定義(`electrical/netlist.py`)から KiCad 8 の回路図と、ユニバーサル基板の部品配置・結線表・配線経路(裏面の配線と表面のジャンパー線)を生成する。ERC エラー 0、両者の結線の一致、配線の短絡なしを自動で確認できるようにする。
 
 **Architecture:** 部品・ピン・ネットは `netlist.py` だけで定義する。`gen_schematic.py` が kiutils で `.kicad_sch` を書き出す。回路図は、各ピンに短い配線とネットラベルを付ける「ラベル接続方式」にする。`gen_perfboard.py` は同じ定義から `perfboard.md`(部品配置と結線表)を書き出す。テストでは、kicad-cli で回路図からネットリストを出力し、`netlist.py` と照合する。
 
@@ -26,7 +26,8 @@
 2. **5V 非耐性ピンへの 5V 入力。** ECHO は必ず 1kΩ を経由して PB12〜15 に入り、エンコーダの電源は +3V3 であること。Task 1 のテスト `test_5v_signals_only_on_ft_pins` で確認する。
 3. **ネットの片側だけの接続(配線の付け忘れ)。** 端子が1つしかないネットを禁止する。Task 1 のテスト `test_no_single_pin_nets` で確認する。
 4. **同じ MCU ピンを2つの機能に使う重複。** Task 1 のテスト `test_mcu_pins_unique` で確認する。
-5. **生成した回路図と結線表の食い違い。** Task 2 のテスト `test_schematic_netlist_matches_definition` で、kicad-cli が出力したネットリストと照合する。
+5. **裏面の配線どうしの短絡。** 隣り合う穴をはんだでつなぐので、別ネットの配線が同じ穴を通ると短絡する。Task 4 のテスト `test_bottom_holes_not_shared_between_nets` で確認する。
+6. **生成した回路図と結線表の食い違い。** Task 2 のテスト `test_schematic_netlist_matches_definition` で、kicad-cli が出力したネットリストと照合する。
 
 ---
 
@@ -314,4 +315,120 @@ Expected: 11 passed。`perfboard.md` が生成される。
 ```bash
 git add electrical/netlist.py electrical/gen_perfboard.py electrical/tests/test_perfboard.py electrical/perfboard.md
 git commit -m "feat(electrical): perfboard placement and wiring table"
+```
+
+---
+
+### Task 4: ユニバーサル基板の配線ルーティング
+
+**Files:**
+- Create: `electrical/route.py`, `electrical/tests/test_route.py`
+- Modify: `electrical/gen_perfboard.py`(配線経路の表と図を追加)
+- Generated (commit): `electrical/perfboard.md`, `electrical/perfboard_bottom.svg`, `electrical/perfboard_top.svg`
+
+**Interfaces:**
+- Consumes:`PARTS`, `nets()`, `PLACEMENT`, `BOARD_HOLES`, `pin_hole()`(Task 1、3)
+- Produces(`route.py`):
+  - `@dataclass(frozen=True) class Trace: net: str; holes: tuple[tuple[int, int], ...]`:裏面の配線。隣り合う穴(上下左右に1つ隣)を順にたどる経路。すずめっき線をはんだで這わせる。
+  - `@dataclass(frozen=True) class Jumper: net: str; a: tuple[int, int]; b: tuple[int, int]; gauge: str`:表面の被覆線。`gauge` は `"AWG18"`(電源の太線)または `"AWG26"`。
+  - `@dataclass class Routing: traces: list[Trace]; jumpers: list[Jumper]`
+  - `HEAVY_NETS = ("VBAT", "GND")`
+  - `def route() -> Routing`
+
+配線の方針:
+1. **電源の太線:** J_PWR の VBAT と GND から、J_VM_L、J_VM_R、J_VM_G、J_BUCK の VBAT と GND、C_BULK の各端子へ、表面の AWG18 の線を星形に引く(`Jumper`、gauge = AWG18)。設計書 5.5 の「太い電源線はネジ端子間を直接配線する」に当たる。
+2. **それ以外の接続:** 裏面で、格子上の迷路探索(BFS)により配線する。ネットの順番は、ピン数の多い順(GND の細線部分、+3V3、+5V、…)とする。複数ピンのネットは、配線済みの部分から最も近い未接続ピンへ順につないで木を作る(Prim 法の要領)。GND の細線部分は J_PWR の GND ピンを根にする。
+3. **通れない穴:** 他のネットの部品ピンの穴、他のネットの配線が通った穴は通れない。自分のネットの穴は再利用できる。
+4. **曲がりの抑制:** BFS のコストを「1穴 = 1、曲がり = 3」とし、曲がりの少ない経路を選ぶ(0-1 BFS ではなくダイクストラ法を使う)。
+5. **配線できないとき:** 裏面でつながらなかったピンの組は、表面の AWG26 のジャンパー線(`Jumper`)でつなぐ。
+
+- [ ] **Step 1: 失敗するテストを書く**(`electrical/tests/test_route.py`)
+
+```python
+from collections import defaultdict
+from netlist import PARTS, nets, pin_hole, BOARD_HOLES
+from route import route, HEAVY_NETS
+
+R = route()
+
+def test_every_net_fully_connected():
+    for net, conns in nets().items():
+        holes = {pin_hole(ref, pin) for ref, pin in conns}
+        parent = {h: h for h in holes}
+        def find(x):
+            while parent.setdefault(x, x) != x:
+                x = parent[x]
+            return x
+        def union(a, b):
+            parent[find(a)] = find(b)
+        for t in R.traces:
+            if t.net == net:
+                for a, b in zip(t.holes, t.holes[1:]):
+                    union(a, b)
+        for j in R.jumpers:
+            if j.net == net:
+                union(j.a, j.b)
+        assert len({find(h) for h in holes}) == 1, net
+
+def test_traces_step_to_adjacent_holes_only():
+    for t in R.traces:
+        for (c1, r1), (c2, r2) in zip(t.holes, t.holes[1:]):
+            assert abs(c1 - c2) + abs(r1 - r2) == 1, t.net
+
+def test_bottom_holes_not_shared_between_nets():
+    owner = {}
+    for p in PARTS:
+        for pin, net in p.pins.items():
+            owner[pin_hole(p.ref, pin)] = net
+    for t in R.traces:
+        for h in t.holes:
+            assert owner.setdefault(h, t.net) == t.net, (h, t.net, owner[h])
+
+def test_traces_inside_board():
+    for t in R.traces:
+        for c, r in t.holes:
+            assert 0 <= c < BOARD_HOLES[0] and 0 <= r < BOARD_HOLES[1]
+
+def test_power_star_uses_heavy_wire():
+    heavy = [j for j in R.jumpers if j.gauge == "AWG18"]
+    assert {j.net for j in heavy} == set(HEAVY_NETS)
+    vm_refs = {"J_VM_L", "J_VM_R", "J_VM_G", "J_BUCK"}
+    ends = {(j.net, j.b) for j in heavy}
+    for p in PARTS:
+        if p.ref in vm_refs:
+            for pin, net in p.pins.items():
+                if net in HEAVY_NETS:
+                    assert (net, pin_hole(p.ref, pin)) in ends, (p.ref, pin)
+
+def test_few_signal_jumpers():
+    assert len([j for j in R.jumpers if j.gauge == "AWG26"]) <= 8
+```
+
+- [ ] **Step 2: 失敗を確認する**
+
+Run: `cd electrical && uv run pytest tests/test_route.py -v`
+Expected: FAIL(`ModuleNotFoundError: route`)
+
+- [ ] **Step 3: `route.py` を実装する**(上の配線の方針どおり)
+
+- [ ] **Step 4: 成功を確認する**
+
+Run: `cd electrical && uv run pytest -v`
+Expected: 17 passed。`test_few_signal_jumpers` だけが落ちる場合は、Task 3 の `PLACEMENT` を見直す。同じ辺に並ぶコネクタの順番を、Bluepill 側のピンの並びに合わせると交差が減る。そのうえで再実行する。
+
+- [ ] **Step 5: 配線の表と図を生成する**
+
+`gen_perfboard.py` に次を追加する。
+- `perfboard.md` の「配線経路」の節:ネットごとに、裏面の経路を直線区間にまとめて「(列,行)→(列,行)」の列で書く。続けて、表面のジャンパー線を「ネット、始点、終点、線材」で書く。作業順は、太線、裏面の配線、ジャンパー線の順とする。
+- `perfboard_top.svg`:部品面から見た図。穴の格子、部品の外形と ref、ジャンパー線(AWG18 は太線)を描く。
+- `perfboard_bottom.svg`:はんだ面から見た図。**左右を反転して** 描き(実物を裏返したときの見た目に合わせる)、図の上部に「はんだ面(左右反転)」と書く。ネットごとに色を分けて裏面の配線を描き、穴に座標の目盛りを付ける。
+
+Run: `cd electrical && uv run python gen_perfboard.py && ls perfboard*`
+Expected: `perfboard.md`、`perfboard_top.svg`、`perfboard_bottom.svg` が生成される。SVG をブラウザで開き、配線どうしが重ならないことを目視で確認する。
+
+- [ ] **Step 6: コミットする**
+
+```bash
+git add electrical/route.py electrical/tests/test_route.py electrical/gen_perfboard.py electrical/perfboard.md electrical/perfboard_top.svg electrical/perfboard_bottom.svg
+git commit -m "feat(electrical): perfboard routing (bottom traces, top jumpers) with SVG views"
 ```
