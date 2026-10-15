@@ -1,0 +1,3 @@
+[workspace]
+members = ["robot-core"]
+resolver = "3"
