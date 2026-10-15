@@ -22,14 +22,18 @@ from build123d import Align, Box, Cylinder, Part, Plane, Pos, Rot, mirror  # noq
 
 from params import (CASTER_D, CASTER_H, EXTRUSION, FRAME_W, FRAME_Z, MOTOR_DIA, MOTOR_LEN,  # noqa: E402
                     SONAR_SPACING, SONAR_Z, WHEEL_D, WHEEL_W, WHEEL_X)
-from parts.chassis import (board_mount, caster_mount, frame_members, motor_clamp, motor_clamp_cap,  # noqa: E402
-                           upright_members)
+from parts.chassis import (BAY_X, BATT_WALL, TRAY_T, battery_box, board_mount, caster_mount,  # noqa: E402
+                           frame_members, motor_clamp, motor_clamp_cap, upright_members)
+from params import BATTERY, BATTERY_Y, ELECTRONICS_H, TRAY_Y  # noqa: E402
 from parts.sensors import HOLDER_T, sonar_body, sonar_mount  # noqa: E402
 
 WHEEL_Y = FRAME_W / 2 - EXTRUSION - 3 - WHEEL_W / 2   # wheel centre |y|
 GEARBOX_FACE_Y = WHEEL_Y - WHEEL_W / 2 - 3       # motor gearbox face |y| (shaft reaches into the wheel hub)
 SONAR_X = SONAR_SPACING / 2
 ESTOP = (70.0, 70.0, 70.0)
+MAIN_SWITCH = (22.0, 20.0, 30.0)   # rocker switch in a small printed stand (measure)
+POWER_SPLICE = (35.0, 20.0, 17.0)  # two 5-way lever connectors (+ and -) for the battery branch
+ELECTRONICS_Y1 = 40.0              # electronics envelope ends here; the switch and the splice sit beyond
 
 
 def _side(part: Part, left: bool) -> Part:
@@ -58,7 +62,18 @@ def chassis() -> dict[str, Part]:
     rear_x = -(FRAME_D / 2 - EXTRUSION / 2)
     parts["caster_mount"] = Pos(rear_x, 0, FRAME_Z) * caster_mount()
     parts["caster"] = Pos(rear_x, 0, 0) * Cylinder(CASTER_D / 2, CASTER_H, align=(Align.CENTER, Align.CENTER, Align.MIN))
-    parts["board"] = Pos(-40, 0, FRAME_Z + EXTRUSION) * board_mount()
+    top = FRAME_Z + EXTRUSION
+    parts["board"] = Pos(0, 0, top) * board_mount()
+    # perfboard, DRV8871 x3, buck module and their wiring: kept as one envelope above the tray
+    parts["electronics"] = _box(BAY_X[0] + 1, BAY_X[1] - 1, TRAY_Y[0] + 1, ELECTRONICS_Y1,
+                                top + TRAY_T, top + TRAY_T + ELECTRONICS_H)
+    parts["main_switch"] = _box(BAY_X[0] + 3, BAY_X[0] + 3 + MAIN_SWITCH[0], TRAY_Y[1] - 2 - MAIN_SWITCH[1],
+                                TRAY_Y[1] - 2, top + TRAY_T, top + TRAY_T + MAIN_SWITCH[2])
+    parts["power_splice"] = _box(BAY_X[0] + 35, BAY_X[0] + 35 + POWER_SPLICE[0], TRAY_Y[1] - 2 - POWER_SPLICE[1],
+                                 TRAY_Y[1] - 2, top + TRAY_T, top + TRAY_T + POWER_SPLICE[2])
+    bx = (BAY_X[0] + BAY_X[1]) / 2
+    parts["battery_box"] = Pos(bx, BATTERY_Y, top) * battery_box()
+    parts["battery"] = Pos(bx, BATTERY_Y, top + BATT_WALL) * Box(*BATTERY, align=(Align.CENTER, Align.CENTER, Align.MIN))
     parts["estop"] = Pos(-FRAME_D / 2 + ESTOP[0] / 2, FRAME_W / 2 - ESTOP[1] / 2, FRAME_Z + EXTRUSION) * Box(
         *ESTOP, align=(Align.CENTER, Align.CENTER, Align.MIN))
     for name, x, left in (("sonar_lf", SONAR_X, True), ("sonar_lr", -SONAR_X, True),
@@ -185,6 +200,7 @@ def printed_parts() -> dict[str, tuple[Part, int]]:
         "motor_clamp_cap": (motor_clamp_cap(), 2),
         "caster_mount": (caster_mount(), 1),
         "board_mount": (board_mount(), 1),
+        "battery_box": (battery_box(), 1),
         "sonar_mount": (sonar_mount(), 4),
     }
 

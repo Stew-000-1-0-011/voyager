@@ -50,8 +50,13 @@ SONAR_CAN_D = 16.0
 SONAR_CAN_PITCH = 26.0
 SONAR_CAN_H = 12.0
 
-# perfboard
-BOARD = (90.0, 75.0)
+# electronics bay and battery, both on the rear member and the mid cross member
+MID_CROSS_X = -18.0      # centre of the extra cross member, just clear of the wheels
+BOARD = (90.0, 75.0)     # perfboard
+TRAY_Y = (-66.0, 66.0)   # electronics tray |y| range (left of the battery, right of the e-stop)
+ELECTRONICS_H = 45.0     # space kept above the tray for the board, drivers, buck module and wiring
+BATTERY = (106.0, 35.0, 26.0)  # LiPo 3S 2200mAh class pack, L x W x H (measure)
+BATTERY_Y = -97.5        # battery centre line, right of the tray
 
 # rules / targets
 BOX = 150.0

@@ -36,6 +36,8 @@ OPEN = build(True)
 CLOSED = build(False)
 # pinion teeth are not phased with the rack teeth; mesh overlap is expected there
 MESH_PAIRS = {frozenset(("pinion", "rack_l")), frozenset(("pinion", "rack_r"))}
+# the electronics envelope stands on the tray and contains the perfboard standoffs
+MESH_PAIRS |= {frozenset(("board", "electronics"))}
 
 
 def _bbox(parts):
@@ -154,3 +156,22 @@ def test_drive_motors_are_clamped_to_the_frame():
 def test_drive_motor_clamp_keeps_ground_clearance():
     for side in ("l", "r"):
         assert OPEN[f"clamp_cap_{side}"].bounding_box().min.Z >= 10.0
+
+
+def test_bay_parts_rest_on_the_frame():
+    from build123d import Box
+
+    for name in ("board", "battery_box"):
+        assert _touching(OPEN[name], OPEN["frame"]), name
+        bb = OPEN[name].bounding_box()
+        # bridges the rear member and the mid cross member
+        assert bb.min.X < -FRAME_D / 2 + 20 and bb.max.X > -20, name
+    assert _touching(OPEN["battery"], OPEN["battery_box"])
+    for name in ("main_switch", "power_splice"):
+        assert _touching(OPEN[name], OPEN["board"]), name
+
+
+def test_battery_sits_inside_its_box():
+    pack, box = OPEN["battery"].bounding_box(), OPEN["battery_box"].bounding_box()
+    assert box.min.X < pack.min.X and pack.max.X < box.max.X
+    assert box.min.Y < pack.min.Y and pack.max.Y < box.max.Y
