@@ -6,7 +6,8 @@ import math
 
 from build123d import Align, Box, Cylinder, Face, Part, Pos, Rot, Wire, extrude
 
-from params import GEAR_FACE, MODULE, MOTOR_SHAFT_D, MOTOR_SHAFT_FLAT, PINION_TEETH, PRESSURE_ANGLE
+from params import (ARM_T, GEAR_FACE, MODULE, MOTOR_SHAFT_D, MOTOR_SHAFT_FLAT, OPEN_INNER, PAD_T, PINION_TEETH,
+                    PRESSURE_ANGLE)
 from parts.involute import gear_outline, rack_outline
 
 PINION_OUTER_D = (PINION_TEETH + 2) * MODULE
@@ -14,11 +15,12 @@ RACK_BASE = 6.0  # rack body thickness behind the tooth roots
 M3_CLEAR = 3.2
 M3_NUT_AF = 5.6
 M3_NUT_T = 2.6
+SET_SCREW_Z = 3.0  # the 10mm motor shaft enters ~6mm, so the set screw sits low
 
 
 def _prism(points: list[tuple[float, float]], height: float) -> Part:
     face = Face(Wire.make_polygon([(x, y, 0) for x, y in points], close=True))
-    return extrude(face, height)
+    return extrude(face, height, dir=(0, 0, 1))
 
 
 def pinion_blank() -> Part:
@@ -31,9 +33,9 @@ def pinion() -> Part:
     flat = MOTOR_SHAFT_FLAT - r  # centre -> flat
     bore = Cylinder(r, GEAR_FACE, align=(Align.CENTER, Align.CENTER, Align.MIN))
     bore -= Pos(flat + r, 0, GEAR_FACE / 2) * Box(2 * r, 2 * r + 1, GEAR_FACE + 1)
-    screw = Pos(0, 0, GEAR_FACE / 2) * Rot(0, 90, 0) * Cylinder(M3_CLEAR / 2, 12,
+    screw = Pos(0, 0, SET_SCREW_Z) * Rot(0, 90, 0) * Cylinder(M3_CLEAR / 2, 12,
                                                                 align=(Align.CENTER, Align.CENTER, Align.MIN))
-    nut = Pos(5.0, 0, GEAR_FACE / 2) * Box(M3_NUT_T, M3_NUT_AF, GEAR_FACE,
+    nut = Pos(5.0, 0, SET_SCREW_Z - M3_NUT_AF / 2) * Box(M3_NUT_T, M3_NUT_AF, GEAR_FACE,
                                           align=(Align.CENTER, Align.CENTER, Align.MIN))
     return pinion_blank() - bore - screw - nut
 
@@ -53,12 +55,6 @@ def rack(length: float) -> Part:
     return body
 
 
-def _rack_len() -> float:
-    # imported lazily to avoid a cycle: the assembly decides where the arms are
-    from assembly import ARM_PLATE_Y_OPEN
-
-    # at full open the rack must still cover the pinion (y = 0) with a full tooth width beyond it
-    return ARM_PLATE_Y_OPEN + PINION_OUTER_D / 2 + 5.0
-
-
-RACK_LEN = _rack_len()
+# At full open the rack must still cover the pinion (y = 0) plus a full tooth beyond it.
+# Arm plate centre-line at full open = OPEN_INNER / 2 + PAD_T + ARM_T / 2 (see assembly.arm_plate_y).
+RACK_LEN = OPEN_INNER / 2 + PAD_T + ARM_T / 2 + PINION_OUTER_D / 2 + 5.0

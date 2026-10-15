@@ -11,6 +11,8 @@ CLEAR = 0.3
 WALL = 3.0
 ARM_Z_MIN = PAD_Z_MIN - 10
 ARM_Z_MAX = PAD_Z_MAX + 10
+GRIP_PLATE_T = 3.0
+PINION_GAP = 1.0   # pinion underside above the motor plate
 
 
 RACK_DEPTH = 2.25 * MODULE + RACK_BASE  # tooth tip to back face
@@ -41,11 +43,13 @@ def arm_bracket(height: float) -> Part:
 
 
 def grip_motor_mount() -> Part:
-    """Plate holding the JGA25-370 vertically (shaft up) under the pinion; motor face at z=0."""
-    plate = Box(40, 40, 5, align=(Align.CENTER, Align.CENTER, Align.MAX))
-    plate -= Cylinder(7.5, 6, align=(Align.CENTER, Align.CENTER, Align.MAX))  # gearbox boss clearance
+    """Plate holding the JGA25-370 vertically (shaft up) under the pinion. Plate top at z = 0; the gearbox
+    face screws to its underside (z = -GRIP_PLATE_T) so the shaft reaches into the pinion."""
+    plate = Box(40, 40, GRIP_PLATE_T, align=(Align.CENTER, Align.CENTER, Align.MAX))
+    plate -= Cylinder(7.5, GRIP_PLATE_T + 1, align=(Align.CENTER, Align.CENTER, Align.MAX))  # shaft boss
     for dx in (-MOTOR_HOLE_PITCH / 2, MOTOR_HOLE_PITCH / 2):
-        plate -= Pos(dx, 0, 0) * Cylinder(MOTOR_HOLE_D / 2, 6, align=(Align.CENTER, Align.CENTER, Align.MAX))
+        plate -= Pos(dx, 0, 0) * Cylinder(MOTOR_HOLE_D / 2, GRIP_PLATE_T + 1,
+                                           align=(Align.CENTER, Align.CENTER, Align.MAX))
     return plate
 
 
