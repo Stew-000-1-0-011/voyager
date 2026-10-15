@@ -44,3 +44,12 @@ def test_divider_and_diode():
     assert set(by_ref["R_DIV_H"].pins.values()) == {"VBAT", "VBAT_SENSE"}
     assert set(by_ref["R_DIV_L"].pins.values()) == {"VBAT_SENSE", "GND"}
     assert by_ref["D_5V"].pins == {"1": "+5V_BP", "2": "+5V"}  # 1=K, 2=A
+
+
+def test_bluepill_rows_face_each_other_correctly():
+    # Standard Blue Pill: across the board PB12 faces GND at the USB end and 3.3V faces VB at the far end.
+    from netlist import BLUEPILL_ROW_A, BLUEPILL_ROW_B
+
+    pairs = set(zip(BLUEPILL_ROW_A, BLUEPILL_ROW_B))
+    for pair in (("3V3", "VB"), ("G", "PC13"), ("5V", "PC14"), ("PB8", "PA0"), ("PA8", "PB11"), ("PB12", "G")):
+        assert pair in pairs, pair

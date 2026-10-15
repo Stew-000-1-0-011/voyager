@@ -19,9 +19,10 @@ class Part:
     pins: dict[str, str]  # pin number -> net name (unconnected pins omitted)
 
 
-# Socket pin 1..20. Common Bluepill pinout; pin 1 is the end opposite the USB connector.
-BLUEPILL_ROW_A = ["PB12", "PB13", "PB14", "PB15", "PA8", "PA9", "PA10", "PA11", "PA12", "PA15",
-                  "PB3", "PB4", "PB5", "PB6", "PB7", "PB8", "PB9", "5V", "G", "3V3"]
+# Socket pin 1..20; pin 1 is the end opposite the USB connector. On a standard Blue Pill the two
+# edges run in opposite directions: PB12 faces GND at the USB end, 3.3V faces VB at the far end.
+BLUEPILL_ROW_A = ["3V3", "G", "5V", "PB9", "PB8", "PB7", "PB6", "PB5", "PB4", "PB3",
+                  "PA15", "PA12", "PA11", "PA10", "PA9", "PA8", "PB15", "PB14", "PB13", "PB12"]
 BLUEPILL_ROW_B = ["VB", "PC13", "PC14", "PC15", "PA0", "PA1", "PA2", "PA3", "PA4", "PA5",
                   "PA6", "PA7", "PB0", "PB1", "PB10", "PB11", "R", "3V3", "G", "G"]
 
