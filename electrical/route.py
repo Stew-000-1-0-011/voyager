@@ -1,13 +1,13 @@
-"""Perfboard routing on two layers.
+"""Perfboard routing, all signal wiring on the solder side in two passes.
 
 - VBAT / GND power: AWG18 wires on the component side, daisy-chained between the power terminals
   (minimum spanning tree from J_PWR) so no terminal carries more than a few wires.
-- Everything else: grid routing on two layers with negotiated congestion (PathFinder):
-    BOTTOM  bare tinned wire laid along the holes on the solder side, soldered at every hole;
-    TOP     insulated wire laid along the holes on the component side, entering a hole only at its
-            two ends (a pin, or a hole where it changes side = "via").
-  A net's tree may branch anywhere on the bottom layer but only at holes on the top layer, because an
-  insulated wire cannot be tapped mid-run.
+- Everything else: grid routing with negotiated congestion (PathFinder), in two kinds of wire:
+    BARE  bare tinned wire laid along the holes, soldered at every hole it runs over;
+    WIRE  insulated wire laid along the holes on top of the bare wiring, so it may cross bare traces.
+          It is soldered only at its two ends: onto a pin's joint, or onto a bare trace ("via").
+  A net's tree may branch anywhere on bare wire but only at the ends of an insulated wire, because an
+  insulated wire cannot be tapped mid-run. Neither kind passes over another pin's solder joint.
 """
 
 from __future__ import annotations
@@ -20,15 +20,15 @@ from netlist import BOARD_HOLES, MODULE_BRIDGES, PARTS, PLACEMENT, nets, pin_hol
 
 Hole = tuple[int, int]
 
-BOTTOM = "bottom"
-TOP = "top"
-_LAYERS = (BOTTOM, TOP)
+BARE = "bare"
+WIRE = "wire"
+_LAYERS = (BARE, WIRE)
 
 HEAVY_NETS = ("VBAT", "GND")
 POWER_ROOT = "J_PWR"
 POWER_REFS = ("J_PWR", "J_BUCK", "C_BULK")
 
-STEP_COST = {BOTTOM: 1.0, TOP: 1.4}  # prefer bare solder-side traces
+STEP_COST = {BARE: 1.0, WIRE: 1.4}  # prefer bare solder-side traces
 TURN_COST = 1.0
 VIA_COST = 4.0
 MAX_ITER = 60
@@ -41,7 +41,7 @@ STATS: dict[str, int] = {}  # last negotiation: iterations used, holes still con
 class Trace:
     net: str
     holes: tuple[Hole, ...]
-    layer: str = BOTTOM
+    layer: str = BARE
 
 
 @dataclass(frozen=True)
@@ -56,42 +56,6 @@ class Jumper:
 class Routing:
     traces: list[Trace] = field(default_factory=list)
     jumpers: list[Jumper] = field(default_factory=list)
-
-
-# ---------------------------------------------------------------------------
-# geometry helpers
-
-def _line(a: Hole, b: Hole) -> list[Hole]:
-    (c1, r1), (c2, r2) = a, b
-    n = max(abs(c2 - c1), abs(r2 - r1))
-    return [(c1 + (c2 - c1) * k // n, r1 + (r2 - r1) * k // n) for k in range(n + 1)] if n else [a]
-
-
-def _widen(run: list[Hole], half: int) -> set[Hole]:
-    """Holes within `half` holes of a straight pin run, measured across the run."""
-    (c1, r1), (c2, r2) = run[0], run[-1]
-    across = (0, 1) if r1 == r2 else (1, 0)
-    return {(c + across[0] * k, r + across[1] * k) for c, r in run for k in range(-half, half + 1)}
-
-
-def top_keepout() -> set[Hole]:
-    """Component-side holes covered by part bodies (a top wire may not pass there).
-    The Bluepill sits high on its sockets, so the area under it stays free."""
-    cols, rows = BOARD_HOLES
-    out: set[Hole] = set()
-    for p in PARTS:
-        pins = [pin_hole(p.ref, pin) for pin in sorted(p.pins, key=int)]
-        run = _line(pins[0], pins[-1])
-        if p.ref.startswith(("R_", "D_")) or p.ref == "C_DIV":
-            out.update(run)                                   # axial / disc body between the leads
-        elif p.ref == "C_BULK":
-            c, r = pins[0]
-            out.update((c + dc, r + dr) for dc in range(-1, 3) for dr in range(-1, 2))  # 8mm can
-        elif p.ref.startswith("J_PWR"):
-            out.update(_widen(run, 2))                        # terminal block ~10mm wide
-        elif p.ref.startswith(("J_DRV", "J_ENC", "J_US", "J_BUCK", "J_UART")):
-            out.update(_widen(run, 1))                        # XH housing
-    return {(c, r) for c, r in out if 0 <= c < cols and 0 <= r < rows}
 
 
 def ground_ring() -> list[Hole]:
@@ -136,7 +100,6 @@ class _Board:
         for p in PARTS:
             for pin, net in p.pins.items():
                 self.pin_owner[pin_hole(p.ref, pin)] = net
-        self.keepout = top_keepout() - set(self.pin_owner)
         self.ring = set(ground_ring())
 
     def inside(self, h: Hole) -> bool:
@@ -147,12 +110,11 @@ class _Board:
         owner = self.pin_owner.get(h)
         if owner is not None and owner != net:
             return False
-        if layer == BOTTOM and h in self.ring and net != "GND":
+        if layer == BARE and h in self.ring and net != "GND":
             return False  # the GND ring wire runs through every perimeter hole
-        if layer == TOP and (h in self.keepout or owner is not None):
-            # a lead already fills a pin's hole: an insulated wire ends in a free hole next to it
-            # and is joined to the pin on the solder side
-            return False
+        if layer == WIRE:
+            if owner == net and h not in targets:
+                return False  # cannot run over a lead; own pins are only end points
         return True
 
 
@@ -161,8 +123,8 @@ def _axis(direction: int) -> str:
 
 
 def _key(layer: str, h: Hole, axis: str | None = None) -> tuple:
-    """Occupancy key: a bottom hole is used whole; a top hole per axis, so insulated wires may cross."""
-    return ("B", h) if layer == BOTTOM else ("T", h, axis)
+    """Occupancy key: a bare-wire hole is used whole; an insulated wire per axis, so insulated wires may cross."""
+    return ("B", h) if layer == BARE else ("T", h, axis)
 
 
 def _grow(board: _Board, net: str, roots: set[Hole], pins: set[Hole], cost_of):
@@ -170,7 +132,7 @@ def _grow(board: _Board, net: str, roots: set[Hole], pins: set[Hole], cost_of):
     cost_of(key) prices an occupancy key (see _key); inf means forbidden."""
     inf = float("inf")
     bottom_tree: set[Hole] = set(roots)
-    entries: set[Hole] = {h for h in roots if h not in board.pin_owner}  # free holes where a top wire may end
+    entries: set[Hole] = set(roots)  # holes where an insulated wire may start or end
     remaining = set(pins) - entries
     segments: list[tuple[str, list[Hole]]] = []
     while remaining:
@@ -178,7 +140,7 @@ def _grow(board: _Board, net: str, roots: set[Hole], pins: set[Hole], cost_of):
         prev: dict[tuple[str, Hole, int], tuple[str, Hole, int] | None] = {}
         heap: list[tuple[float, int, str, Hole, int]] = []
         tie = 0
-        for layer, holes in ((BOTTOM, bottom_tree), (TOP, entries)):
+        for layer, holes in ((BARE, bottom_tree), (WIRE, entries)):
             for h in holes:
                 best[(layer, h, -1)] = 0.0
                 prev[(layer, h, -1)] = None
@@ -193,14 +155,14 @@ def _grow(board: _Board, net: str, roots: set[Hole], pins: set[Hole], cost_of):
             if h in remaining and prev[(layer, h, d)] is not None:
                 found = (layer, h, d)
                 break
-            # change side through this hole (a via occupies the hole on both sides, both top axes)
-            other = TOP if layer == BOTTOM else BOTTOM
-            if (d != -1 and board.pin_owner.get(h) is None and h not in board.keepout
+            # switch between bare and insulated wire at this hole (a via takes the hole for both kinds)
+            other = WIRE if layer == BARE else BARE
+            if (d != -1 and board.pin_owner.get(h) is None
                     and board.enterable(net, other, h, remaining)):
-                if other == TOP:
-                    step = cost_of(_key(TOP, h, "h")) + cost_of(_key(TOP, h, "v"))
+                if other == WIRE:
+                    step = cost_of(_key(WIRE, h, "h")) + cost_of(_key(WIRE, h, "v"))
                 else:
-                    step = cost_of(_key(BOTTOM, h)) + cost_of(_key(TOP, h, "h" if _axis(d) == "v" else "v"))
+                    step = cost_of(_key(BARE, h)) + cost_of(_key(WIRE, h, "h" if _axis(d) == "v" else "v"))
                 if step < inf:
                     ncost = cost + VIA_COST + step
                     key = (other, h, -1)
@@ -209,14 +171,16 @@ def _grow(board: _Board, net: str, roots: set[Hole], pins: set[Hole], cost_of):
                         prev[key] = (layer, h, d)
                         tie += 1
                         heapq.heappush(heap, (ncost, tie, other, h, -1))
+            if layer == WIRE and d != -1 and board.pin_owner.get(h) == net:
+                continue  # an insulated wire that reached one of this net's pins ends there
             for nd, (dc, dr) in enumerate(_DIRS):
                 n = (h[0] + dc, h[1] + dr)
                 if not board.inside(n) or not board.enterable(net, layer, n, remaining):
                     continue
                 step = cost_of(_key(layer, n, _axis(nd)))
                 turning = d not in (-1, nd)
-                if layer == TOP and turning:
-                    step += cost_of(_key(TOP, h, _axis(nd)))  # a bend uses both axes of its hole
+                if layer == WIRE and turning:
+                    step += cost_of(_key(WIRE, h, _axis(nd)))  # a bend uses both axes of its hole
                 if step == inf:
                     continue
                 ncost = cost + STEP_COST[layer] + step + (TURN_COST if turning else 0)
@@ -249,11 +213,12 @@ def _grow(board: _Board, net: str, roots: set[Hole], pins: set[Hole], cost_of):
         if len(run) > 1:
             new_segments.append((run_layer, run))
         for layer, holes in new_segments:
-            if layer == BOTTOM:
+            if layer == BARE:
                 bottom_tree.update(holes)
             else:
                 entries.update((holes[0], holes[-1]))
         segments += new_segments
+        entries.add(found[1])
         bottom_tree.add(found[1])
         remaining -= bottom_tree | entries
     return segments, remaining
@@ -265,14 +230,14 @@ def _usage(segments, pins: set[Hole]) -> set[tuple]:
         for i, h in enumerate(holes):
             if h in pins:
                 continue
-            if layer == BOTTOM:
-                used.add(_key(BOTTOM, h))
+            if layer == BARE:
+                used.add(_key(BARE, h))
                 continue
-            if i in (0, len(holes) - 1):  # end of a top wire = via: whole hole on both sides
-                used.update({_key(TOP, h, "h"), _key(TOP, h, "v"), _key(BOTTOM, h)})
+            if i in (0, len(holes) - 1):  # end of an insulated wire = via: the whole hole
+                used.update({_key(WIRE, h, "h"), _key(WIRE, h, "v"), _key(BARE, h)})
                 continue
             for j in (i - 1, i + 1):
-                used.add(_key(TOP, h, "h" if holes[j][1] == h[1] else "v"))
+                used.add(_key(WIRE, h, "h" if holes[j][1] == h[1] else "v"))
     return used
 
 
@@ -289,7 +254,7 @@ def route() -> Routing:
     order = sorted(all_nets, key=lambda n: (len(all_nets[n]), n))
 
     ring = ground_ring()
-    fixed = {"GND": [(BOTTOM, ring)]}
+    fixed = {"GND": [(BARE, ring)]}
 
     def roots(net: str) -> set[Hole]:
         out = {h for j in power if j.net == net for h in (j.a, j.b)} if net in HEAVY_NETS else {min(pins[net])}
@@ -344,7 +309,7 @@ def route() -> Routing:
                 segs, left = routed[net], set()
             else:
                 def hard(key: tuple, net=net) -> float:
-                    # committed wires are walls (top wires per axis, so they may still be crossed)
+                    # committed wires are walls (insulated wires per axis, so they may still be crossed)
                     return 0.0 if taken.get(key, net) == net else float("inf")
 
                 segs, left = _grow(board, net, roots(net), pins[net], hard)
@@ -378,4 +343,4 @@ def route() -> Routing:
     return best
 
 
-__all__ = ["BOTTOM", "TOP", "HEAVY_NETS", "Trace", "Jumper", "Routing", "route", "top_keepout", "PLACEMENT"]
+__all__ = ["BARE", "WIRE", "HEAVY_NETS", "Trace", "Jumper", "Routing", "route", "PLACEMENT"]

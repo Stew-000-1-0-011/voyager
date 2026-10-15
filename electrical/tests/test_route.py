@@ -1,7 +1,7 @@
 from collections import Counter
 
 from netlist import BOARD_HOLES, MODULE_BRIDGES, PARTS, nets, pin_hole
-from route import BOTTOM, HEAVY_NETS, TOP, route, top_keepout
+from route import BARE, HEAVY_NETS, WIRE, route
 
 R = route()
 PIN_OWNER = {pin_hole(p.ref, pin): net for p in PARTS for pin, net in p.pins.items()}
@@ -24,7 +24,7 @@ def test_every_net_fully_connected():
         for t in R.traces:
             if t.net != net:
                 continue
-            if t.layer == BOTTOM:
+            if t.layer == BARE:
                 # a bare trace is soldered in every hole it runs through
                 for a, b in zip(t.holes, t.holes[1:]):
                     parent[_find(parent, a)] = _find(parent, b)
@@ -53,13 +53,13 @@ def test_traces_inside_board():
 def test_bottom_holes_not_shared_between_nets():
     owner = dict(PIN_OWNER)
     for t in R.traces:
-        if t.layer == BOTTOM:
+        if t.layer == BARE:
             for h in t.holes:
                 assert owner.setdefault(h, t.net) == t.net, (h, t.net, owner[h])
 
 
 def _top_axes(t):
-    """(hole, axis) pairs a top wire occupies: 'h'/'v' where it runs straight, both at bends and ends."""
+    """(hole, axis) pairs an insulated wire occupies: 'h'/'v' where it runs straight, both at bends and ends."""
     out = []
     for i, h in enumerate(t.holes):
         axes = set()
@@ -76,26 +76,17 @@ def test_top_wires_only_cross_never_overlap():
     # insulated wires may cross at right angles, but never run along each other or share an end hole
     owner = {}
     for t in R.traces:
-        if t.layer == TOP:
+        if t.layer == WIRE:
             for key in _top_axes(t):
                 assert owner.setdefault(key, t.net) == t.net, (key, t.net, owner[key])
 
 
-def test_top_wires_never_end_in_a_pin_hole():
-    # a pin's hole is already filled by its lead or socket pin; the wire goes into a free hole beside it
+def test_insulated_wires_touch_pins_only_at_their_ends():
+    # an insulated wire is soldered onto a pin's joint only where it ends, never runs over another joint
     for t in R.traces:
-        if t.layer == TOP:
-            assert t.holes[0] not in PIN_OWNER and t.holes[-1] not in PIN_OWNER, t.net
-            assert t.holes[0] not in BLUEPILL_HOLES and t.holes[-1] not in BLUEPILL_HOLES, t.net
-
-
-def test_top_wires_enter_holes_only_at_their_ends():
-    # a wire may not pass over a lead sticking up through the board, nor under a component body
-    blocked = top_keepout()
-    for t in R.traces:
-        if t.layer == TOP:
+        if t.layer == WIRE:
             for h in t.holes[1:-1]:
-                assert h not in PIN_OWNER and h not in blocked, (t.net, h)
+                assert h not in PIN_OWNER, (t.net, h)
 
 
 def test_traces_avoid_unconnected_pins():
@@ -126,10 +117,10 @@ def test_power_wires_daisy_chained():
 def test_ground_ring_runs_around_the_perimeter():
     cols, rows = BOARD_HOLES
     perimeter = {(c, r) for c in range(cols) for r in range(rows) if c in (0, cols - 1) or r in (0, rows - 1)}
-    ring = {h for t in R.traces if t.net == "GND" and t.layer == BOTTOM for h in t.holes}
+    ring = {h for t in R.traces if t.net == "GND" and t.layer == BARE for h in t.holes}
     assert perimeter <= ring
 
 
 def test_bus_layout_keeps_wiring_short():
     # 45 insulated wires before the GND ring, 34 with it; 6 once pins and connectors were grouped by side
-    assert len([t for t in R.traces if t.layer == TOP]) <= 8
+    assert len([t for t in R.traces if t.layer == WIRE]) <= 8

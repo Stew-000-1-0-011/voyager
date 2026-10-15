@@ -8,7 +8,7 @@ import colorsys
 import hashlib
 
 from netlist import BLUEPILL_ROW_A, BLUEPILL_ROW_B, BOARD_HOLES, PARTS, PLACEMENT, nets, pin_hole
-from route import BOTTOM, TOP, Routing, route
+from route import BARE, WIRE, Routing, route
 
 HEAVY = ("VBAT", "GND")
 
@@ -104,20 +104,22 @@ def _segments(holes: tuple[tuple[int, int], ...]) -> list[tuple[int, int]]:
 def _routing_section(r: Routing) -> list[str]:
     heavy = [j for j in r.jumpers if j.gauge == "AWG18"]
     thin = [j for j in r.jumpers if j.gauge != "AWG18"]
-    bottom = sorted((t for t in r.traces if t.layer == BOTTOM), key=lambda t: (t.net, t.holes))
-    top = sorted((t for t in r.traces if t.layer == TOP), key=lambda t: (t.net, t.holes))
+    bare = sorted((t for t in r.traces if t.layer == BARE), key=lambda t: (t.net, t.holes))
+    wire = sorted((t for t in r.traces if t.layer == WIRE), key=lambda t: (t.net, t.holes))
     lines = ["## 配線経路", "",
              "作業順:(1)部品面の太線、(2)はんだ面の裸配線(すずめっき線を穴に沿って這わせ、通る穴ごとにはんだ付け)、"
-             "(3)部品面の被覆線(AWG26 またはポリウレタン線を穴の列に沿って這わせ、両端だけ穴に通してはんだ付け。"
-             "被覆線どうしは直角に交差してよい)。ピンの穴は足やソケットでふさがっているので、被覆線の端は必ず空いた穴に"
-             "差し、はんだ面でその穴から裸配線につないでピンまで渡す(被覆線の端は、はんだ面の裸配線との乗り換え点)。図は `images/perfboard_top.png`、`images/perfboard_bottom.png`(はんだ面は左右反転)。", "",
-             f"裸配線 {len(bottom)} 本、被覆線 {len(top)} 本、太線 {len(heavy)} 本。", "",
+             "(3)はんだ面の被覆線(耐熱の被覆線、たとえば AWG26〜30 の ETFE ラッピング線を、裸配線の上から穴の列に沿って"
+             "這わせる。はんだ付けは両端だけで、端はピンのはんだの上か、裸配線の上に付ける。裸配線や他の被覆線とは"
+             "直角に交差してよいが、途中で他のピンのはんだの上は通さない)。ポリウレタン線ははんだごての熱で被覆が溶けるので、"
+             "交差に使わない。図は `images/perfboard_top.png`(部品面)、`images/perfboard_bottom.png`(はんだ面の裸配線)、"
+             "`images/perfboard_wires.png`(はんだ面の被覆線)。はんだ面の図は左右反転。", "",
+             f"裸配線 {len(bare)} 本、被覆線 {len(wire)} 本、太線 {len(heavy)} 本。", "",
              "### (1) 部品面の太線(AWG18、端子間を数珠つなぎ)", "", "| ✓ | ネット | 始点 | 終点 |", "|---|---|---|---|"]
     lines += [f"| ☐ | {j.net} | {_hole(j.a)} | {_hole(j.b)} |" for j in heavy]
     lines += ["", "### (2) はんだ面の裸配線", "", "| ✓ | ネット | 経路(角の穴) |", "|---|---|---|"]
-    lines += [f"| ☐ | {t.net} | {' → '.join(_hole(h) for h in _segments(t.holes))} |" for t in bottom]
-    lines += ["", "### (3) 部品面の被覆線", "", "| ✓ | ネット | 経路(角の穴、両端だけ穴に通す) |", "|---|---|---|"]
-    lines += [f"| ☐ | {t.net} | {' → '.join(_hole(h) for h in _segments(t.holes))} |" for t in top]
+    lines += [f"| ☐ | {t.net} | {' → '.join(_hole(h) for h in _segments(t.holes))} |" for t in bare]
+    lines += ["", "### (3) はんだ面の被覆線", "", "| ✓ | ネット | 経路(角の穴、はんだ付けは両端だけ) |", "|---|---|---|"]
+    lines += [f"| ☐ | {t.net} | {' → '.join(_hole(h) for h in _segments(t.holes))} |" for t in wire]
     if thin:
         lines += ["", "### (4) 直結の被覆線(格子に乗らなかったもの)", "", "| ✓ | ネット | 始点 | 終点 |", "|---|---|---|---|"]
         lines += [f"| ☐ | {j.net} | {_hole(j.a)} | {_hole(j.b)} |" for j in sorted(thin, key=lambda j: (j.net, j.a))]
@@ -139,7 +141,9 @@ def _color(net: str) -> str:
     return f"#{int(r * 255):02x}{int(g * 255):02x}{int(b * 255):02x}"
 
 
-def _svg(r: Routing, mirror: bool) -> str:
+def _svg(r: Routing, view: str) -> str:
+    """view: "top" (component side), "bare" or "wire" (solder side, mirrored)."""
+    mirror = view != "top"
     cols, rows = BOARD_HOLES
     w, h = MARGIN * 2 + (cols - 1) * PX, MARGIN * 2 + (rows - 1) * PX + 40
 
@@ -150,7 +154,8 @@ def _svg(r: Routing, mirror: bool) -> str:
     out = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 {w} {h}" '
            'font-family="Noto Sans CJK JP, IPAGothic, DejaVu Sans, sans-serif">',
            f'<rect width="{w}" height="{h}" fill="white"/>']
-    title = ("はんだ面(左右反転:実物を裏返した向き)" if mirror else "部品面") + "  上=ロボット前方"
+    title = {"top": "部品面(部品と太線)", "bare": "はんだ面 (2) 裸配線(左右反転:実物を裏返した向き)",
+             "wire": "はんだ面 (3) 被覆線(左右反転、灰色は先に付けた裸配線)"}[view] + "  上=ロボット前方"
     out.append(f'<text x="{MARGIN}" y="34" font-size="22" font-weight="bold">{title}</text>')
     x0, y0 = xy((0, 0))
     x1, y1 = xy((cols - 1, rows - 1))
@@ -168,15 +173,20 @@ def _svg(r: Routing, mirror: bool) -> str:
         _, y = xy((0, rr))
         out.append(f'<text x="{x}" y="{y + 4}" font-size="12" text-anchor="middle">{rr}</text>')
 
-    layer = BOTTOM if mirror else TOP
-    shown = [t for t in r.traces if t.layer == layer]
+    shown = [t for t in r.traces if (view, t.layer) in (("bare", BARE), ("wire", WIRE))]
+    if view == "wire":  # the bare wiring underneath, for orientation
+        for t in r.traces:
+            if t.layer == BARE:
+                pts = " ".join(f"{xy(p)[0]},{xy(p)[1]}" for p in t.holes)
+                out.append(f'<polyline points="{pts}" fill="none" stroke="#c9c2b4" stroke-width="5" '
+                           'stroke-linecap="round" stroke-linejoin="round"/>')
     if True:
         for t in shown:
             pts = " ".join(f"{xy(p)[0]},{xy(p)[1]}" for p in t.holes)
-            width = 5 if mirror else 3
+            width = 5 if view == "bare" else 3
             out.append(f'<polyline points="{pts}" fill="none" stroke="{_color(t.net)}" stroke-width="{width}" '
                        'stroke-linecap="round" stroke-linejoin="round"/>')
-            if not mirror:  # wire ends go into holes
+            if view == "wire":  # soldered ends
                 for end in (t.holes[0], t.holes[-1]):
                     ex, ey = xy(end)
                     out.append(f'<circle cx="{ex}" cy="{ey}" r="5" fill="none" stroke="{_color(t.net)}" '
@@ -246,5 +256,6 @@ if __name__ == "__main__":
     here = Path(__file__).parent
     routing = route()
     generate_md(here / "perfboard.md", routing)
-    (here / "perfboard_top.svg").write_text(_svg(routing, mirror=False))
-    (here / "perfboard_bottom.svg").write_text(_svg(routing, mirror=True))
+    (here / "perfboard_top.svg").write_text(_svg(routing, "top"))
+    (here / "perfboard_bottom.svg").write_text(_svg(routing, "bare"))
+    (here / "perfboard_wires.svg").write_text(_svg(routing, "wire"))
