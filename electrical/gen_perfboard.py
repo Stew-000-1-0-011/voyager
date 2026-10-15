@@ -8,7 +8,7 @@ import colorsys
 import hashlib
 
 from netlist import BLUEPILL_ROW_A, BLUEPILL_ROW_B, BOARD_HOLES, PARTS, PLACEMENT, nets, pin_hole
-from route import Routing, route
+from route import BOTTOM, TOP, Routing, route
 
 HEAVY = ("VBAT", "GND")
 
@@ -92,17 +92,23 @@ def _segments(holes: tuple[tuple[int, int], ...]) -> list[tuple[int, int]]:
 def _routing_section(r: Routing) -> list[str]:
     heavy = [j for j in r.jumpers if j.gauge == "AWG18"]
     thin = [j for j in r.jumpers if j.gauge != "AWG18"]
+    bottom = sorted((t for t in r.traces if t.layer == BOTTOM), key=lambda t: (t.net, t.holes))
+    top = sorted((t for t in r.traces if t.layer == TOP), key=lambda t: (t.net, t.holes))
     lines = ["## 配線経路", "",
-             "作業順:(1)部品面の太線、(2)はんだ面の裸配線(すずめっき線を穴に沿って這わせ、各穴ではんだ付け)、"
-             "(3)被覆線(AWG26 またはポリウレタン線。他の配線をまたいでよい)。図は `images/perfboard_top.png`、"
-             "`images/perfboard_bottom.png`(はんだ面は左右反転)。", "",
-             "### (1) 部品面の太線(AWG18)", "", "| ✓ | ネット | 始点 | 終点 |", "|---|---|---|---|"]
+             "作業順:(1)部品面の太線、(2)はんだ面の裸配線(すずめっき線を穴に沿って這わせ、通る穴ごとにはんだ付け)、"
+             "(3)部品面の被覆線(AWG26 またはポリウレタン線を穴の列に沿って這わせ、両端だけ穴に通してはんだ付け。"
+             "被覆線どうしは直角に交差してよい)。被覆線の端が部品のピン以外の穴にあるところは、はんだ面の裸配線との"
+             "乗り換え点。図は `images/perfboard_top.png`、`images/perfboard_bottom.png`(はんだ面は左右反転)。", "",
+             f"裸配線 {len(bottom)} 本、被覆線 {len(top)} 本、太線 {len(heavy)} 本。", "",
+             "### (1) 部品面の太線(AWG18、端子間を数珠つなぎ)", "", "| ✓ | ネット | 始点 | 終点 |", "|---|---|---|---|"]
     lines += [f"| ☐ | {j.net} | {_hole(j.a)} | {_hole(j.b)} |" for j in heavy]
     lines += ["", "### (2) はんだ面の裸配線", "", "| ✓ | ネット | 経路(角の穴) |", "|---|---|---|"]
-    for t in sorted(r.traces, key=lambda t: (t.net, t.holes)):
-        lines.append(f"| ☐ | {t.net} | {' → '.join(_hole(h) for h in _segments(t.holes))} |")
-    lines += ["", "### (3) 被覆線", "", "| ✓ | ネット | 始点 | 終点 |", "|---|---|---|---|"]
-    lines += [f"| ☐ | {j.net} | {_hole(j.a)} | {_hole(j.b)} |" for j in sorted(thin, key=lambda j: (j.net, j.a))]
+    lines += [f"| ☐ | {t.net} | {' → '.join(_hole(h) for h in _segments(t.holes))} |" for t in bottom]
+    lines += ["", "### (3) 部品面の被覆線", "", "| ✓ | ネット | 経路(角の穴、両端だけ穴に通す) |", "|---|---|---|"]
+    lines += [f"| ☐ | {t.net} | {' → '.join(_hole(h) for h in _segments(t.holes))} |" for t in top]
+    if thin:
+        lines += ["", "### (4) 直結の被覆線(格子に乗らなかったもの)", "", "| ✓ | ネット | 始点 | 終点 |", "|---|---|---|---|"]
+        lines += [f"| ☐ | {j.net} | {_hole(j.a)} | {_hole(j.b)} |" for j in sorted(thin, key=lambda j: (j.net, j.a))]
     return lines + [""]
 
 
@@ -150,13 +156,21 @@ def _svg(r: Routing, mirror: bool) -> str:
         _, y = xy((0, rr))
         out.append(f'<text x="{x}" y="{y + 4}" font-size="12" text-anchor="middle">{rr}</text>')
 
-    if mirror:
-        for t in r.traces:
+    layer = BOTTOM if mirror else TOP
+    shown = [t for t in r.traces if t.layer == layer]
+    if True:
+        for t in shown:
             pts = " ".join(f"{xy(p)[0]},{xy(p)[1]}" for p in t.holes)
-            out.append(f'<polyline points="{pts}" fill="none" stroke="{_color(t.net)}" stroke-width="5" '
+            width = 5 if mirror else 3
+            out.append(f'<polyline points="{pts}" fill="none" stroke="{_color(t.net)}" stroke-width="{width}" '
                        'stroke-linecap="round" stroke-linejoin="round"/>')
+            if not mirror:  # wire ends go into holes
+                for end in (t.holes[0], t.holes[-1]):
+                    ex, ey = xy(end)
+                    out.append(f'<circle cx="{ex}" cy="{ey}" r="5" fill="none" stroke="{_color(t.net)}" '
+                               'stroke-width="2"/>')
         labelled = set()
-        for t in sorted(r.traces, key=lambda t: -len(t.holes)):
+        for t in sorted(shown, key=lambda t: -len(t.holes)):
             if t.net in labelled:
                 continue
             labelled.add(t.net)

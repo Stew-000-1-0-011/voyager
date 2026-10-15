@@ -1,46 +1,44 @@
+from collections import Counter
+
 from netlist import BOARD_HOLES, PARTS, nets, pin_hole
-from route import HEAVY_NETS, route
+from route import BOTTOM, HEAVY_NETS, TOP, route, top_keepout
 
 R = route()
+PIN_OWNER = {pin_hole(p.ref, pin): net for p in PARTS for pin, net in p.pins.items()}
+BLUEPILL_HOLES = {pin_hole(ref, str(i)) for ref in ("J_BP_A", "J_BP_B") for i in range(1, 21)}
+
+
+def _find(parent, x):
+    while parent.setdefault(x, x) != x:
+        x = parent[x]
+    return x
 
 
 def test_every_net_fully_connected():
     for net, conns in nets().items():
         holes = {pin_hole(ref, pin) for ref, pin in conns}
-        parent = {h: h for h in holes}
-
-        def find(x):
-            while parent.setdefault(x, x) != x:
-                x = parent[x]
-            return x
-
-        def union(a, b):
-            parent[find(a)] = find(b)
-
+        parent = {}
         for t in R.traces:
-            if t.net == net:
+            if t.net != net:
+                continue
+            if t.layer == BOTTOM:
+                # a bare trace is soldered in every hole it runs through
                 for a, b in zip(t.holes, t.holes[1:]):
-                    union(a, b)
+                    parent[_find(parent, a)] = _find(parent, b)
+            else:
+                # an insulated wire only connects where it enters a hole: its two ends
+                parent[_find(parent, t.holes[0])] = _find(parent, t.holes[-1])
         for j in R.jumpers:
             if j.net == net:
-                union(j.a, j.b)
-        assert len({find(h) for h in holes}) == 1, net
+                parent[_find(parent, j.a)] = _find(parent, j.b)
+        assert len({_find(parent, h) for h in holes}) == 1, net
 
 
 def test_traces_step_to_adjacent_holes_only():
     for t in R.traces:
+        assert len(t.holes) >= 2
         for (c1, r1), (c2, r2) in zip(t.holes, t.holes[1:]):
             assert abs(c1 - c2) + abs(r1 - r2) == 1, t.net
-
-
-def test_bottom_holes_not_shared_between_nets():
-    owner = {}
-    for p in PARTS:
-        for pin, net in p.pins.items():
-            owner[pin_hole(p.ref, pin)] = net
-    for t in R.traces:
-        for h in t.holes:
-            assert owner.setdefault(h, t.net) == t.net, (h, t.net, owner[h])
 
 
 def test_traces_inside_board():
@@ -49,33 +47,66 @@ def test_traces_inside_board():
             assert 0 <= c < BOARD_HOLES[0] and 0 <= r < BOARD_HOLES[1]
 
 
-def test_power_star_uses_heavy_wire():
-    heavy = [j for j in R.jumpers if j.gauge == "AWG18"]
-    assert {j.net for j in heavy} == set(HEAVY_NETS)
-    vm_refs = {"J_VM_L", "J_VM_R", "J_VM_G", "J_BUCK"}
-    ends = {(j.net, j.b) for j in heavy}
-    for p in PARTS:
-        if p.ref in vm_refs:
-            for pin, net in p.pins.items():
-                if net in HEAVY_NETS:
-                    assert (net, pin_hole(p.ref, pin)) in ends, (p.ref, pin)
+def test_bottom_holes_not_shared_between_nets():
+    owner = dict(PIN_OWNER)
+    for t in R.traces:
+        if t.layer == BOTTOM:
+            for h in t.holes:
+                assert owner.setdefault(h, t.net) == t.net, (h, t.net, owner[h])
 
 
-def test_insulated_wires_bounded():
-    # Two 20-pin Bluepill headers fanning out to all four edges is not planar on one layer,
-    # so nets that cannot stay on bare solder-side traces use insulated wires.
-    assert len([j for j in R.jumpers if j.gauge == "AWG26"]) <= 40
+def _top_axes(t):
+    """(hole, axis) pairs a top wire occupies: 'h'/'v' where it runs straight, both at bends and ends."""
+    out = []
+    for i, h in enumerate(t.holes):
+        axes = set()
+        for j in (i - 1, i + 1):
+            if 0 <= j < len(t.holes):
+                axes.add("h" if t.holes[j][1] == h[1] else "v")
+        if i in (0, len(t.holes) - 1):
+            axes = {"h", "v"}
+        out += [(h, a) for a in axes]
+    return out
 
 
-def test_most_nets_use_bare_traces():
-    bare = {t.net for t in R.traces}
-    assert len(bare) >= len(nets()) // 2
+def test_top_wires_only_cross_never_overlap():
+    # insulated wires may cross at right angles, but never run along each other or share an end hole
+    owner = {}
+    for t in R.traces:
+        if t.layer == TOP:
+            for key in _top_axes(t):
+                assert owner.setdefault(key, t.net) == t.net, (key, t.net, owner[key])
+
+
+def test_top_wires_enter_holes_only_at_their_ends():
+    # a wire may not pass over a lead sticking up through the board, nor under a component body
+    blocked = top_keepout()
+    for t in R.traces:
+        if t.layer == TOP:
+            for h in t.holes[1:-1]:
+                assert h not in PIN_OWNER and h not in blocked, (t.net, h)
 
 
 def test_traces_avoid_unconnected_pins():
-    # Bluepill NC pins (VB, PC13-15, R, PA11) are still physical pins: no trace may touch them
-    nc = {pin_hole(ref, str(i)) for ref in ("J_BP_A", "J_BP_B") for i in range(1, 21)}
-    nc -= {pin_hole(p.ref, pin) for p in PARTS for pin in p.pins}
+    nc = BLUEPILL_HOLES - set(PIN_OWNER)
     assert nc
     for t in R.traces:
         assert not nc & set(t.holes), (t.net, nc & set(t.holes))
+
+
+def test_no_point_to_point_signal_wires():
+    assert [j for j in R.jumpers if j.gauge != "AWG18"] == []
+
+
+def test_power_wires_reach_every_power_pin():
+    heavy_ends = {(j.net, h) for j in R.jumpers if j.gauge == "AWG18" for h in (j.a, j.b)}
+    for p in PARTS:
+        if p.ref in ("J_PWR", "J_VM_L", "J_VM_R", "J_VM_G", "J_BUCK", "C_BULK"):
+            for pin, net in p.pins.items():
+                if net in HEAVY_NETS:
+                    assert (net, pin_hole(p.ref, pin)) in heavy_ends, (p.ref, pin)
+
+
+def test_power_wires_daisy_chained():
+    per_hole = Counter(h for j in R.jumpers if j.gauge == "AWG18" for h in (j.a, j.b))
+    assert max(per_hole.values()) <= 3

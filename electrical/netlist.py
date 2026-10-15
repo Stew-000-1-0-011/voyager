@@ -120,44 +120,44 @@ def nets() -> dict[str, list[tuple[str, str]]]:
 # edge, viewed from the component side. Rotation: direction in which pin
 # numbers advance (0: +col, 90: +row, 180: -col, 270: -row).
 
-BOARD_HOLES = (40, 32)  # ~100 x 80mm
+BOARD_HOLES = (44, 36)  # ~112 x 91mm, fits a 115 x 95mm board
 
 PLACEMENT: dict[str, tuple[int, int, int]] = {
     # Bluepill: pin 1 toward the front, USB toward the rear edge
-    "J_BP_B": (17, 10, 90),
-    "J_BP_A": (23, 10, 90),
+    "J_BP_B": (19, 8, 90),
+    "J_BP_A": (25, 8, 90),
     # front edge: drivers, driver power, gripper encoder
     "J_VM_L": (1, 0, 0),
-    "J_DRV_L": (6, 0, 0),
-    "J_ENC_G": (11, 0, 0),
-    "J_DRV_G": (16, 0, 0),
-    "J_VM_G": (21, 0, 0),
-    "J_DRV_R": (27, 0, 0),
-    "J_VM_R": (34, 0, 0),
+    "J_DRV_L": (7, 0, 0),
+    "J_ENC_G": (12, 0, 0),
+    "J_DRV_G": (18, 0, 0),
+    "J_VM_G": (23, 0, 0),
+    "J_DRV_R": (29, 0, 0),
+    "J_VM_R": (38, 0, 0),
     # left / right edges: wheel encoders and ultrasonic sensors
     "J_US_LF": (0, 4, 90),
-    "J_ENC_L": (0, 12, 90),
-    "J_US_LR": (0, 22, 90),
-    "J_US_RF": (39, 4, 90),
-    "J_ENC_R": (39, 12, 90),
-    "J_US_RR": (39, 22, 90),
+    "J_ENC_L": (0, 14, 90),
+    "J_US_LR": (0, 26, 90),
+    "J_US_RF": (43, 4, 90),
+    "J_ENC_R": (43, 14, 90),
+    "J_US_RR": (43, 26, 90),
     # rear edge: power in, buck module, expansion
-    "J_PWR": (2, 31, 0),
-    "J_BUCK": (8, 31, 0),
-    "J_UART": (26, 31, 0),
-    "J_I2C": (32, 31, 0),
+    "J_PWR": (2, 35, 0),
+    "J_BUCK": (8, 35, 0),
+    "J_UART": (28, 35, 0),
+    "J_I2C": (35, 35, 0),
     # interior
-    "C_BULK": (2, 28, 0),
-    "R_DIV_H": (6, 27, 0),
-    "R_DIV_L": (10, 25, 180),
-    "C_DIV": (12, 23, 0),
-    "D_5V": (12, 30, 0),
-    "R_ECHO_LF": (3, 9, 0),
-    "R_ECHO_LR": (3, 20, 0),
-    "R_ECHO_RF": (36, 9, 180),
-    "R_ECHO_RR": (36, 20, 180),
-    "R_USB": (26, 27, 0),
-    "J_SPARE": (12, 12, 90),
+    "C_BULK": (2, 32, 0),
+    "R_DIV_H": (6, 31, 0),
+    "R_DIV_L": (10, 29, 180),
+    "C_DIV": (12, 27, 0),
+    "D_5V": (13, 33, 0),
+    "R_ECHO_LF": (3, 10, 0),
+    "R_ECHO_LR": (3, 23, 0),
+    "R_ECHO_RF": (40, 10, 180),
+    "R_ECHO_RR": (40, 23, 180),
+    "R_USB": (28, 30, 0),
+    "J_SPARE": (13, 13, 90),
 }
 
 # Hole step between consecutive pin numbers.
