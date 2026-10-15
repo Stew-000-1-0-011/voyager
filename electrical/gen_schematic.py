@@ -41,8 +41,15 @@ def _snap(v: float) -> float:
     return round(round(v / GRID) * GRID, 4)
 
 
+_UID_NS = uuid.UUID("6f1c2a52-7d0e-4c1e-9a3b-2f6c0b1d9e41")
+_uid_counter = 0
+
+
 def _uid() -> str:
-    return str(uuid.uuid4())
+    """Deterministic UUIDs so regenerating the schematic gives an identical file."""
+    global _uid_counter
+    _uid_counter += 1
+    return str(uuid.uuid5(_UID_NS, f"carrier-{_uid_counter}"))
 
 
 def _load_symbols(parts: list[Part]):
@@ -90,6 +97,8 @@ def _label_effects() -> Effects:
 
 
 def generate(out_dir: Path) -> Path:
+    global _uid_counter
+    _uid_counter = 0
     sch = Schematic.create_new()
     sch.version = 20231120
     sch.generator = "carrier_gen"
